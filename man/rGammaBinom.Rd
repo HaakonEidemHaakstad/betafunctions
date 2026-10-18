@@ -13,7 +13,7 @@ rGammaBinom(n, size, prob, precision = 1e-04)
 
 \item{prob}{Probability of "success" on each "trial". Need not be integer.}
 
-\item{precision}{The precision with which the quantile is to be calculated. Default is 1e-4 (i.e., search terminates when there is no registered change in estimate at the fourth decimal). Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.}
+\item{precision}{The convergence tolerance used by \code{qGammaBinom()} when computing the quantile. Default is 1e-4. Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.}
 }
 \description{
 Random number generation under the Gamma-extended Binomial distribution.
@@ -21,9 +21,18 @@ Random number generation under the Gamma-extended Binomial distribution.
 \note{
 Calls \code{qGammaBinom()}, which makes the random draw slower than what one might be used to (since \code{qGammaBinom()} calls \code{pGammaBinom()} and employs a search-algorithm to find the appropriate value down to a specifiable level of precision).
 }
+\section{Deprecated}{
+
+This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+}
+
 \examples{
 # Assume some variable follows a Gamma-Binomial distribution with
 # "number of trials" = 10.5 and probability of "success" for each "trial"
 # = 0.75 To draw a random value from this distribution:
 rGammaBinom(n = 1, size = 10, prob = 0.75)
 }
+\seealso{
+\code{\link{betafunctions-deprecated}}
+}
+\keyword{internal}

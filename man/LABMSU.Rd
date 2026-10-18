@@ -18,7 +18,7 @@ LABMSU(
 
 \item{beta}{The beta (second) shape-parameter of the target Beta probability density distribution.}
 
-\item{u}{The upper-bound of the Beta distribution. Default is NULL (i.e., does not take a specified u-parameter into account).}
+\item{u}{The upper-bound of the Beta distribution. Default is NULL (i.e., does not take a specified u-parameter into account). If supplied, \code{l} is determined by \code{alpha}, \code{beta}, \code{mean}, and \code{u} alone, and \code{variance} is not used.}
 
 \item{mean}{The mean (first raw moment) of the target Standard Beta probability density distribution.}
 
@@ -47,7 +47,7 @@ S2 <- var(testdata)
 
 # To find the l parameter necessary to produce a four-parameter Beta
 # distribution with the target mean, variance, and u, alpha, and beta
-# parameters using the LMSBAU() function:
+# parameters using the LABMSU() function:
 (l <- LABMSU(alpha = 5, beta = 3, mean = M, variance = S2, u = 0.75))
 curve(dBeta.4P(x, l, .75, 5, 3), add = TRUE, lwd = 2)
 }

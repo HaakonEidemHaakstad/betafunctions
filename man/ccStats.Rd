@@ -7,7 +7,7 @@
 ccStats(ii, ij, ji, jj)
 }
 \arguments{
-\item{ii}{The frequency or rate of consistent classifications into category "i".}
+\item{ii}{The frequency or rate of consistent classifications into category "i". Frequencies are converted to proportions before the statistics are computed.}
 
 \item{ij}{The frequency or rate of inconsistent classifications into categories "i" and "j".}
 

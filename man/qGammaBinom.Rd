@@ -15,14 +15,19 @@ qGammaBinom(p, size, prob, lower.tail = TRUE, precision = 1e-07)
 
 \item{lower.tail}{Logical. If TRUE (default), probabilities are P[X < x], otherwise P[X > x].}
 
-\item{precision}{The precision with which the quantile is to be calculated. Default is 1e-7 (i.e., search terminates when there is no registered change in estimate at the seventh decimal). Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.}
+\item{precision}{The convergence tolerance of the root-finding algorithm (passed to \code{stats::uniroot()} as \code{tol}). Default is 1e-7. Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.}
 }
 \description{
 Quantile function for the Gamma-extended Binomial distribution.
 }
 \note{
-This function uses a bisection search-algorithm to find the number of successes corresponding to the specified quantile(s). This algorithm is inefficient with respect to the number of iterations required to converge on the solution. More efficient algorithms might be added in later versions.
+This function uses root-finding (\code{stats::uniroot()}) on the cumulative distribution function to find the number of successes corresponding to the specified quantile(s).
 }
+\section{Deprecated}{
+
+This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+}
+
 \examples{
 # For a Gamma-extended Binomial distribution with number of trials = 10 and
 # probability of success per trial of 0.75, calculate the number of success-
@@ -37,3 +42,7 @@ qGammaBinom(p = 0.25, size = 10, prob = 0.75, lower.tail = FALSE)
 \references{
 Loeb, D. E. (1992). A generalization of the binomial coefficients. Discrete Mathematics, 105(1-3).
 }
+\seealso{
+\code{\link{betafunctions-deprecated}}
+}
+\keyword{internal}

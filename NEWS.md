@@ -1,3 +1,81 @@
+# betafunctions v. 2.0.0
+
+A full audit and refactor of every function, deprecation of functions without a theoretical basis, and new functionality. Arguments and output structures of existing functions are unchanged (new arguments are added at the end, with defaults). Outputs differ where the previous implementation was wrong, numerically inaccurate, or used an unfounded estimator; every such change is listed below. The major version reflects these changes in results.
+
+## Deprecated functions
+
+The following functions now issue a deprecation warning and will become defunct in the next major version (see `?"betafunctions-deprecated"`):
+
+- `MLA()`, `MLB()`, `MLM()`: they return the parameters of a Beta distribution with the same alpha + beta whose mode equals an observed proportion. That is a re-parameterization, not an estimate of a "most likely" true-score distribution.
+
+- `dGammaBinom()`, `pGammaBinom()`, `qGammaBinom()`, `rGammaBinom()`, `dBeta.pGammaBinom()`: interpolating the Binomial pmf with Gamma functions does not give a density, and its renormalized version is not derived from any model of item responses, so it has no basis as an error model for non-integer effective test lengths. `gchoose()` is retained.
+
+- `dBeta.pBeta()`: a Beta-distributed error with mean equal to the true score and concentration `n` has no grounding in the Livingston and Lewis or strong true-score models. Use `dBeta.pBinom()`.
+
+## New functions
+
+- `MN.CA()`, `MN.CA.MC()`, and `MN.ROC()` implement the multinomial and compound multinomial approach to classification accuracy and consistency of Lee (2007) and Lee, Brennan, and Wan (2009), as in the MULT-CLASS program. They mirror the `LL.` and `HB.` functions' arguments and output, so `MC.out.tabular()` works on `MN.CA.MC()` output. Items can be grouped into fixed, weighted item sets with any score points. Brennan and Lee's (2006) bias correction is optional (on by default), and examinee-level results are available with `conditional = TRUE`. `MN.CA.MC()` also reports the ordered over- and underclassification rates. The implementation reproduces both example analyses distributed with MULT-CLASS v3.0 to the five printed decimals.
+
+- `LL.CA()`, `LL.CA.MC()`, `HB.CA()`, and `HB.CA.MC()` gain `conditional = FALSE`. With `TRUE`, they return accuracy and consistency conditional on each possible observed score, together with each score's expected proportion and the posterior probability of each true category. Weighting the conditional values by the expected proportions recovers the overall indices.
+
+- `mdo()` gains `method = c("triad", "ml")`. `"ml"` estimates the one-factor model by maximum likelihood (via `factanal()`, rescaled to the covariance metric). It returns a likelihood-ratio test of the one-factor model with `fit = TRUE`, allows negative covariances (warning about opposite-sign loadings), and warns on Heywood cases. Maximum likelihood is now the default; `method = "triad"` reproduces the estimates of earlier versions.
+
+## Bug fixes (outputs change)
+
+- `qBeta.4P(lower.tail = FALSE)` (and therefore `qBetaMS(lower.tail = FALSE)`) returned `1 - qbeta(p, alpha, beta)`, which is the upper-tail quantile only when `alpha == beta`. It now returns `qbeta(p, alpha, beta, lower.tail = FALSE)`.
+
+- `dBetaBinom()`, `pBetaBinom()`, `rBetaBinom()`, and `betabinomialmoments()` integrated over [0, 1] even when the true-score distribution lives on a narrower [l, u]. `integrate()` then missed or double-counted mass, giving probabilities that could be negative or above 1 (errors around 2e-4). Integration is now restricted to the support, and the standard (l = 0, u = 1) case uses the closed-form Beta-Binomial pmf.
+
+- `pBetaBinom()` and `pcBinom()` gave wrong answers for non-integer `q` and for `q > N`. Both now consistently return P[X < q] (lower tail) or P[X >= q] (upper tail).
+
+- `LL.CA()` used `round(N * cut)` as the observed cut-point for accuracy but `floor(cut * N)` for consistency, so the two disagreed whenever `N * cut` had a fractional part of at least 0.5. Neither matched the rule that a score at or above the cut passes, which on the effective-test-length scale means an integer score of at least `ceiling(N * cut)`. `LL.CA()`, `LL.CA.MC()` (which used `round()`), and `dBeta.pBinom()` now all use `ceiling()`, so results change whenever `N * cut` is not an integer.
+
+- `observedmoments(correct = TRUE)` divided every central moment by `n - 1`, which is a bias correction only for the variance. It now returns the unbiased estimators of the second to fourth central moments and the k-statistic based (adjusted Fisher-Pearson) skewness and kurtosis. `correct = FALSE` gives the plug-in moments. Because `Beta.4p.fit(scores)` uses these defaults, four-parameter fits to raw scores change slightly.
+
+- Model fit in `LL.CA()` and `LL.CA.MC()`: when bin widths were fractional (the usual case, since the default of 100 bins rarely divides the effective test length), observed scores were binned with `>=`/`<` on the break-points while expected frequencies were computed with `pbinom(break - 1)`. That put the two counts in bins offset by one score, inflating the chi-square statistic. Both now use the same binning rule.
+
+- Model fit in all `LL.` and `HB.` functions: the p-value was always computed with `ncol - 4` degrees of freedom, even when the reported `df` was `ncol - 2` (two-parameter model, or fail-safe engaged). Degrees of freedom are now the number of bins minus one minus the number of moments matched (`ncol - 5` for four-parameter fits, `ncol - 3` for two-parameter fits), following Lord (1965, p. 244), who gives *n* - 4 df for an ungrouped four-parameter fit. The p-value uses this `df`. A spurious `expected < number of bins` condition that blocked bin-merging when `minbin` exceeded the number of bins was also removed. The documentation of the `modelfit` argument now describes Lord's grouping rule (merge only to reach an expected frequency of 1.0; `modelfit = 1` for `HB.`, `c(nbins, 1)` for `LL.`). The default minimum of 10 is unchanged.
+
+- `HB.CA()` with `cut = 0` counted a score of 0 as "below the cut", which affected the first point of every `HB.ROC()` curve. Non-integer cuts (from `HB.ROC()` with `grainsize != testlength`) silently evaluated the pmf at non-integer scores. Scores at or above `cut` are now classified as above it.
+
+- `LL.CA.MC()` labelled categories with `cut / (max - min) * max`, which is wrong when `min != 0` (for example, a cut of 150 on a 100–200 scale was labelled "< 100"). Labels now show the cut-points as supplied.
+
+- `ccStats()` normalized `p` but not `p_c` by the total, so Kappa was wrong when frequencies rather than proportions were supplied.
+
+- `mdo(fit = TRUE)`: the GFI divided the mean squared residual by the mean (not mean squared) covariance, so it depended on the scale of the data. It now uses the standard ULS form `1 - sum(residual^2) / sum(S^2)`.
+
+- `betamedian()` returned the approximation `(alpha - 1/3) / (alpha + beta - 2/3)`, which is inaccurate for small shape parameters. It now returns the exact median.
+
+- `dGammaBinom()` and `gchoose()` returned `NaN` for `size` above about 170 (Gamma-function overflow). These are now computed on the log scale where needed.
+
+- `dfac()` set values of `x` below `r` to zero. That is correct for integers but not for the non-integer effective scores used when `Beta.tp.fit()` estimates the true-score moments, where it made the estimator jump discontinuously. It now computes the falling factorial for any real `x`.
+
+- `rcBinom()` and `rBetacBinom()` handled negative probabilities from Lord's two-term approximation by adding the absolute value of the smallest probability to every score, which spread probability mass across the whole scale. Negative probabilities are now set to zero before renormalizing.
+
+- `qGammaBinom(p = 0 or 1, lower.tail = FALSE)` returned the wrong end-point. The bisection search, which could loop forever, is replaced by `uniroot()`.
+
+- `rcBinom()` and `rBetacBinom()` warned "Sum of probabilities did not equal 1" on virtually every call (an exact floating-point comparison, and a `sum(weights != 1)` typo). `rcBinom()` with a vector `p` longer than `n` returned `length(p)` draws instead of `n`.
+
+- `LL.CA()`/`LL.CA.MC()` computed classification-consistency statistics from the unnormalized matrix while reporting the normalized one. Accuracy statistics in the `.MC` functions likewise came from the unnormalized confusion matrix. All statistics now come from the normalized matrices.
+
+## Other changes
+
+- The fail-safe in the `LL.` and `HB.` functions now also engages on non-finite or non-positive shape-parameter estimates, as the documentation describes, instead of erroring.
+
+- `dBetacBinom()` is now exported and documented (its examples were previously embedded in a parameter description).
+
+- `betamode()` warns when `alpha <= 1` or `beta <= 1`, where the formula does not give the mode. `LABMSU()` warns "Not enough information." like `UABMSL()` does.
+
+- `mdo()` now gives an informative error with fewer than three variables.
+
+- Performance: `pBeta.4P()` uses `pbeta()` rather than two numerical integrals per value. `betamoments()` uses closed-form moments. `HB.CA()` and `HB.CA.MC()` compute observed-category probabilities in closed form rather than one integral per pair of scores. In testing, `LL.CA()`, `LL.CA.MC()`, `HB.CA()`, and `HB.ROC()` ran 3–12x faster, and `HB.CA.MC()` 50–200x faster (3 s to 0.015 s at 60 items).
+
+- Code quality: duplicated logic is now shared through internal helpers in `R/utils.R` (fitting, model fit, ROC plotting, category labels, accuracy/consistency summaries). Loops and `sapply()` calls are vectorized. `&`/`|` in scalar conditions are replaced by `&&`/`||`. Dead code is removed, including unreachable branches in `LABMSU()` and `UABMSL()`, and `HB.CA.MC()` recomputing its full consistency matrix once per category.
+
+- Added a `testthat` test suite. Added `stats` and `graphics` to `Imports`, and an `.Rbuildignore`.
+
+---
+
 # betafunctions v. 1.9.0
 
 - Fixed a bug with fitting the two-parameter beta-distribution model in the `HB.CA()`, `HB.CA.MC()`, and `HB.ROC()` functions. 
@@ -148,7 +226,7 @@
 
 - Changes to the `LL.ROC()` function. Now allows for specifying the lower- and upper-bound parameters of the true-score distribution should "2P" be specified.
 
-- A Shiny application providing a GUI for the Livingston and Lewis approach functionality of the package has been developed and can be found at https://hthaa.shinyapps.io/shinybeta/
+- A Shiny application providing a GUI for the Livingston and Lewis approach functionality of the package has been developed
 
 - The "3P" functionality of `Beta.tp.fit()`, `LL.CA()` and `LL.ROC` has been removed, as it did not perform satisfactorily. 
 

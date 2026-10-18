@@ -18,13 +18,16 @@ observedmoments(
 
 \item{orders}{The number of moment-orders to be calculated for each of the moment-types.}
 
-\item{correct}{Logical. Whether to include bias correction in estimation of orders. Default is \code{TRUE}.}
+\item{correct}{Logical. Default is \code{TRUE}. If \code{TRUE}, central moments of orders 2 to 4 are the unbiased estimators (order 2 is the sample variance with denominator \code{n - 1}, order 3 is \eqn{n \sum d^3 / ((n-1)(n-2))}, order 4 is the unbiased estimator of the fourth central moment), and the standardized moments of orders 3 and 4 are the adjusted Fisher-Pearson skewness \eqn{k_3 / k_2^{3/2}} and kurtosis \eqn{k_4 / k_2^2 + 3} based on k-statistics. If \code{FALSE}, the plug-in moments (denominator \code{n}) are returned. No small-sample correction is applied beyond order 4, so higher orders are plug-in values in either case. These estimators require at least four observations.}
 }
 \value{
 A list of moment types, each a list of moment orders.
 }
 \description{
 Computes Raw, Central, or Standardized moment properties of a vector of observed scores.
+}
+\note{
+Prior to version 2.0.0, \code{correct = TRUE} divided every central moment by \code{n - 1}, which is unbiased only for the variance, and scaled standardized moments by the sample standard deviation.
 }
 \examples{
 # Generate some fictional data. Say, 100 individuals take a test with a

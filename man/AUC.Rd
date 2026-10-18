@@ -17,9 +17,6 @@ A value representing the area under the ROC curve.
 \description{
 Given a vector of false-positive rates and a vector of true-positive rates, calculate the area under the Receiver Operator Characteristic (ROC) curve.
 }
-\note{
-Script originally retrieved and modified from https://blog.revolutionanalytics.com/2016/11/calculating-auc.html.
-}
 \examples{
 # Generate some fictional data. Say, 100 individuals take a test with a
 # maximum score of 100 and a minimum score of 0.

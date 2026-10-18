@@ -17,13 +17,16 @@ qBeta.4P(p, l, u, alpha, beta, lower.tail = TRUE)
 
 \item{beta}{The second shape parameter.}
 
-\item{lower.tail}{Logical. Whether the quantile(s) to be calculated is to be under the lower or upper tail. Default is \code{TRUE} (lower tail).}
+\item{lower.tail}{Logical. If \code{TRUE} (default), returns \code{x} such that P[X <= x] = \code{p}; otherwise \code{x} such that P[X > x] = \code{p}.}
 }
 \value{
 A vector of quantiles for specified probabilities or proportions of observations under the four-parameter Beta distribution.
 }
 \description{
 Function for calculating the quantile (i.e., value of \code{x}) for a given proportion (i.e., the value of \code{y}) under the Four-Parameter Beta Distribution.
+}
+\note{
+Prior to version 2.0.0, \code{lower.tail = FALSE} returned \code{1 - qbeta(p, alpha, beta)} on the [l, u] scale, which is only correct when \code{alpha == beta}.
 }
 \examples{
 # Assume some variable follows a four-parameter Beta distribution with

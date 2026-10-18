@@ -11,13 +11,18 @@ pGammaBinom(q, size, prob, lower.tail = TRUE)
 
 \item{size}{Number of "trials" (zero or more). Need not be integer.}
 
-\item{prob}{Probability of "success" on each "trial". Need not be integer.}
+\item{prob}{Probability of "success" on each "trial". Need not be integer. \code{q} and \code{prob} are recycled to a common length.}
 
 \item{lower.tail}{Logical. If TRUE (default), probabilities are P[X<x], otherwise, P[X >= x]. Note that this differs from base-R \code{binom()} functions.}
 }
 \description{
 Extends the cumulative Binomial probability mass function to positive non-integers, effectively turning the mass-function into a density-function.
 }
+\section{Deprecated}{
+
+This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+}
+
 \examples{
 # Assume some variable follows a Gamma-Binomial  distribution with
 # "number of trials" = 10.5 and probability of "success" for each "trial"
@@ -31,3 +36,7 @@ pGammaBinom(q = 7.5, size = 10.5, prob = 0.75, lower.tail = FALSE)
 \references{
 Loeb, D. E. (1992). A generalization of the binomial coefficients. Discrete Mathematics, 105(1-3).
 }
+\seealso{
+\code{\link{betafunctions-deprecated}}
+}
+\keyword{internal}

@@ -11,13 +11,16 @@ dfac(x, r, method = "product")
 
 \item{r}{The power \code{x} is to be raised to.}
 
-\item{method}{The method by which the descending factorials are to be calculated. Default is \code{"product"} which uses direct arithmetic. Alternative is \code{"gamma"} which calculates the ascending factorial using the Gamma function. The alternative method might be faster but might fail because the Gamma function is not defined for negative integers (returning Inf).}
+\item{method}{The method by which the descending factorials are to be calculated. Default is \code{"product"} which uses direct arithmetic. Alternative is \code{"gamma"} which calculates the descending factorial using the Gamma function. The alternative method might be faster but might fail because the Gamma function is not defined for negative integers (returning Inf).}
 }
 \value{
 The descending factorial of value \code{x} raised to the \code{r}'th power.
 }
 \description{
 Calculate the descending (or falling) factorial of a value \code{x} of order \code{r}.
+}
+\details{
+The falling factorial is \eqn{x (x - 1) \cdots (x - r + 1)} for any real \code{x}. Prior to version 2.0.0, values of \code{x} below \code{r} were set to zero, which is correct for integers but introduced a discontinuity for the non-integer effective scores used by the Livingston and Lewis approach (\code{Beta.tp.fit()}).
 }
 \examples{
 # To calculate the 4th descending factorial for a value (e.g., 3.14):

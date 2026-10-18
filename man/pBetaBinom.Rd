@@ -19,10 +19,10 @@ pBetaBinom(q, N, l, u, alpha, beta, lower.tail = TRUE)
 
 \item{beta}{The second shape parameter.}
 
-\item{lower.tail}{Whether the proportion to be calculated is to be under the lower or upper tail. Default is \code{TRUE} (lower tail).}
+\item{lower.tail}{Logical. If \code{TRUE} (default), probabilities are P[X < q], otherwise P[X >= q]. Note that this differs from base-R \code{pbinom()}, which gives P[X <= q].}
 }
 \value{
-A vector of proportions of observations falling under specified quantiles under the four-parameter Beta distribution.
+A vector of proportions of observations falling under specified quantiles under the Beta-Binomial distribution.
 }
 \description{
 Function for calculating the proportion of observations up to a specifiable quantile under the Beta-Binomial Probability Distribution.
