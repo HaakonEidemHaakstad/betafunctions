@@ -182,3 +182,40 @@ test_that("conditional results average to the overall indices", {
                hm$consistency$overall$statistics$p, tolerance = 1e-5)
   expect_null(LL.CA(x, 0.7, 50, 0, 100, modelfit = NULL)$conditional)
 })
+
+test_that("maximum-likelihood Omega", {
+  set.seed(1234)
+  x <- matrix(rnorm(500), ncol = 5) + rnorm(100)
+  x <- sweep(x, 2, c(1, 2, 0.5, 3, 1.5), "*")
+  colnames(x) <- letters[1:5]
+  f <- mdo(x, fit = TRUE, method = "ml")
+  expect_equal(f$Omega, mdo(x, method = "ml"))
+  expect_named(f, c("Omega", "GFI", "Parameters", "Matrices", "Test"))
+  expect_equal(f$Test$df, 5)
+
+  # Agrees with a direct minimization of the ML discrepancy function.
+  S <- cov(x)
+  discrepancy <- function(th) {
+    sigma <- tcrossprod(th[1:5]) + diag(exp(th[6:10]))
+    log(det(sigma)) + sum(diag(S %*% solve(sigma)))
+  }
+  opt <- optim(c(rep(1, 5), log(diag(S) / 2)), discrepancy, method = "BFGS",
+               control = list(reltol = 1e-14, maxit = 1000))
+  loadings <- unname(abs(opt$par[1:5]))
+  errors <- exp(opt$par[6:10])
+  expect_equal(unname(f$Parameters["Loadings", ]), loadings, tolerance = 1e-4)
+  expect_equal(f$Omega, sum(loadings)^2 / (sum(loadings)^2 + sum(errors)), tolerance = 1e-5)
+
+  # Invariant to a common change of scale; the fitted diagonal reproduces the variances.
+  expect_equal(mdo(x * 7, method = "ml"), f$Omega, tolerance = 1e-6)
+  expect_equal(unname(diag(f$Matrices$Fitted)), unname(diag(S)), tolerance = 1e-4)
+
+  # Three items: the model is just identified, so there is no test.
+  expect_true(is.na(mdo(x[, 1:3], fit = TRUE, method = "ml")$Test$p.value))
+
+  # Negative covariances are allowed with ML, with a warning about keying.
+  y <- x
+  y[, 2] <- -y[, 2]
+  expect_error(mdo(y), "less than or equal to 0")
+  expect_warning(mdo(y, method = "ml"), "opposite sign")
+})

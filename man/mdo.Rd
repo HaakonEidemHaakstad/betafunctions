@@ -4,23 +4,30 @@
 \alias{mdo}
 \title{Calculate McDonald's Omega reliability-coefficient from supplied variables.}
 \usage{
-mdo(x, fit = FALSE)
+mdo(x, fit = FALSE, method = c("triad", "ml"))
 }
 \arguments{
 \item{x}{A data-frame or matrix of numerical values where rows represent respondents, and columns represent items.}
 
 \item{fit}{Logical. Default is \code{FALSE}. If \code{TRUE}, the output changes from a vector containing the Omega reliability-estimate to a list containing additional detailed information concerning the fitted factor model.}
+
+\item{method}{The estimator of the one-factor model. \code{"triad"} (default) estimates each item's loading as the mean over all pairs of other items of \eqn{\sqrt{\sigma_{ia}\sigma_{ib}/\sigma_{ab}}}, and its error variance as the item variance minus the squared loading. \code{"ml"} fits the one-factor model by maximum likelihood with \code{stats::factanal()} and rescales the standardized solution to the covariance metric. Maximum likelihood is the standard estimator, uses all covariances simultaneously, and provides a likelihood-ratio test of the one-factor model; it assumes multivariate normality for the test, though the point estimates remain reasonable under moderate departures.}
 }
 \value{
-If \code{fit = FALSE}, A vector of length 1 containing the estimated McDonalds's Omega reliability-coefficient for the sum-score of the supplied variables. If \code{fit = TRUE}, a list containing the Omega-coefficient reliability-estimate as the first entry, followed by the goodness-of-fit index (GFI), a two-row matrix containing the estimated factor-loadings and error-variances, and the observed and fitted covariance-matrices and the discrepancy matrix.
+If \code{fit = FALSE}, A vector of length 1 containing the estimated McDonalds's Omega reliability-coefficient for the sum-score of the supplied variables. If \code{fit = TRUE}, a list containing the Omega-coefficient reliability-estimate as the first entry, followed by the goodness-of-fit index (GFI, unweighted least squares form), a two-row matrix containing the estimated factor-loadings and error-variances, and the observed and fitted covariance-matrices and the discrepancy matrix. With \code{method = "ml"}, the list also contains \code{Test}: the likelihood-ratio chi-square test of the one-factor model (\code{statistic}, \code{df}, \code{p.value}), which is \code{NA} when the model has zero degrees of freedom (three items).
 }
 \description{
-Calculates McDonalds's Omega reliability-coefficient of the sum-score from the Spearman one-factor model using the procedure outlined in McDonald (1999).
+Calculates McDonalds's Omega reliability-coefficient of the sum-score from the Spearman one-factor model (McDonald, 1999). The factor loadings and error variances can be estimated by maximum likelihood (\code{method = "ml"}) or by averaging Spearman's triad estimates (\code{method = "triad"}, the default and the only method in versions prior to 1.9.1).
+}
+\details{
+Omega is \eqn{(\sum_i \lambda_i)^2 / ((\sum_i \lambda_i)^2 + \sum_i \psi_i)}, where \eqn{\lambda_i} are the factor loadings and \eqn{\psi_i} the error variances on the covariance metric.
 }
 \note{
-Missing values are treated by passing \code{na.rm = TRUE} to the \code{var} function call and \code{use = "pairwise.complete.obs"} to the \code{cov} function call.
+Missing values are treated by passing \code{na.rm = TRUE} to the \code{var} function call and \code{use = "pairwise.complete.obs"} to the \code{cov} function call. With \code{method = "ml"}, the number of complete cases is used as the sample size for the likelihood-ratio test.
 
-The function terminates with an error if there are negative covariance-matrix entries.
+With \code{method = "triad"}, the function terminates with an error if there are covariances less than or equal to zero. With \code{method = "ml"}, negative covariances are allowed, but a warning is issued if items have loadings of opposite sign, since Omega for the unweighted sum score then understates the reliability of a correctly keyed composite.
+
+With \code{method = "ml"}, \code{factanal()} bounds standardized error variances below at 0.005; a warning is issued if that bound is reached (a Heywood case).
 }
 \examples{
 # Generate some fictional data.
@@ -32,10 +39,16 @@ rawdata <- apply(rawdata, 2, function(x) {x + common})
 # To estimate McDonald's Omega from this data:
 mdo(rawdata)
 
-# To retrieve additional information such as the GFI fit-index and model-
-# parameter estimates:
-mdo(rawdata, fit = TRUE)
+# Using maximum-likelihood estimation of the one-factor model:
+mdo(rawdata, method = "ml")
+
+# To retrieve additional information such as the GFI fit-index, the
+# likelihood-ratio test of the one-factor model, and model-parameter
+# estimates:
+mdo(rawdata, fit = TRUE, method = "ml")
 }
 \references{
 McDonald, R. P. (1999). Test Theory: A Unified Treatment. Routledge.
+
+Jöreskog, K. G. (1967). Some contributions to maximum likelihood factor analysis. Psychometrika, 32(4), 443--482. doi: 10.1007/BF02289658
 }

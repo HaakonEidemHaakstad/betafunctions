@@ -18,6 +18,8 @@ The following functions now issue a deprecation warning and will be removed in a
 
 - `LL.CA()`, `LL.CA.MC()`, `HB.CA()`, and `HB.CA.MC()` gain `conditional = FALSE`. With `TRUE`, they return accuracy and consistency conditional on each possible observed score, together with each score's expected proportion and the posterior probability of each true category. Weighting the conditional values by the expected proportions recovers the overall indices.
 
+- `mdo()` gains `method = c("triad", "ml")`. `"ml"` estimates the one-factor model by maximum likelihood (via `factanal()`, rescaled to the covariance metric). It returns a likelihood-ratio test of the one-factor model with `fit = TRUE`, allows negative covariances (warning about opposite-sign loadings), and warns on Heywood cases. The default remains the triad estimator, so existing results are unchanged.
+
 ## Bug fixes (outputs change)
 
 - `qBeta.4P(lower.tail = FALSE)` (and therefore `qBetaMS(lower.tail = FALSE)`) returned `1 - qbeta(p, alpha, beta)`, which is the upper-tail quantile only when `alpha == beta`. It now returns `qbeta(p, alpha, beta, lower.tail = FALSE)`.
