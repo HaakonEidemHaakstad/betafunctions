@@ -26,6 +26,11 @@ dBeta.pGammaBinom(x, l, u, alpha, beta, n, c, lower.tail = FALSE)
 \description{
 The Beta Compound Binomial distribution: The product of the four-parameter Beta probability density function and the binomial cumulative probability mass function. Used in the Livingston and Lewis approach to classification accuracy and consistency, the output can be interpreted as the population density of passing scores produced at "x" (a value of true-score).
 }
+\section{Deprecated}{
+
+This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+}
+
 \examples{
 # Given a four-parameter Beta distribution with parameters l = 0.25, u = 0.75,
 # alpha = 5, and beta = 3, and a Binomial error distribution with number of
@@ -55,3 +60,7 @@ Lord, Frederic M. (1965). A Strong True-Score Theory, With Applications. Psychom
 
 Loeb, D. E. (1992). A generalization of the binomial coefficients. Discrete Mathematics, 105(1-3).
 }
+\seealso{
+\code{\link{betafunctions-deprecated}}
+}
+\keyword{internal}

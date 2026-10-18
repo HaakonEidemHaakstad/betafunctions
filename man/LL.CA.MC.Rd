@@ -14,7 +14,8 @@ LL.CA.MC(
   failsafe = TRUE,
   l = 0,
   u = 1,
-  modelfit = c(nbins = 100, minbin = 10)
+  modelfit = c(nbins = 100, minbin = 10),
+  conditional = FALSE
 )
 }
 \arguments{
@@ -37,6 +38,8 @@ LL.CA.MC(
 \item{u}{If \code{true.model = "2P"} or \code{failsafe = TRUE}, the upper-bound location parameter to be used in the two-parameter fitting procedure. Default is 1 (i.e., the upper-bound of the Standard Beta distribution).}
 
 \item{modelfit}{Allows for controlling the chi-square test for model fit. The argument takes either a vector of two values, or \code{NULL}. If set to \code{NULL}, the model-fit test is not executed. If a vector of values is supplied, the first value is to represent the initial number of bins the distribution of scores is to be divided in to. This value is set to a default of 100. If this default results in too few bins to conduct the chi-square test, this value can be made larger. The second value represents the minimum expected number of observations that the bins should consist of. In accordance with standard recommendations for chi-square tests, the default value is set to 10. Degrees of freedom are the number of bins minus one, minus the number of moments matched when fitting the true-score distribution (two for a two-parameter solution, four otherwise), following Lord (1965, p. 244). Lord (1965) grouped score points only as far as necessary to obtain expected frequencies of at least 1.0 per class; \code{modelfit = c(nbins, 1)} applies that rule (the default minimum of 10 gives a coarser, less sensitive test). Note that the test is carried out on observed scores rescaled and rounded to the effective test length, as the Livingston and Lewis model defines the observed-score distribution on that scale.}
+
+\item{conditional}{Logical. Whether to include classification accuracy and consistency conditional on each possible observed score. Default is \code{FALSE}. If \code{TRUE}, the output gains a data frame \code{conditional} with one row per possible observed score (on the effective-test-length scale, reported in the original score metric): the score, its expected proportion under the fitted model, its observed category, the probability that an examinee with that score is classified into their true category (\code{accuracy}), the probability that two independent administrations classify such an examinee into the same category (\code{consistency}), and the posterior probability of each true category. Averaging \code{accuracy} or \code{consistency} weighted by \code{proportion} gives the overall indices.}
 }
 \value{
 A list containing the estimated parameters necessary for the approach (i.e., the effective test-length and the beta distribution parameters), a chi-square test of model-fit, the confusion matrix containing estimated proportions of true/false positive/negative categorizations for a test, diagnostic performance statistics, and/or a classification consistency matrix and indices. Accuracy output includes a confusion matrix and diagnostic performance indices, and consistency output includes a consistency matrix and consistency indices \code{p} (expected proportion of agreement between two independent test administrations), \code{p_c} (proportion of agreement on two independent administrations expected by chance alone), and \code{Kappa} (Cohen's Kappa).

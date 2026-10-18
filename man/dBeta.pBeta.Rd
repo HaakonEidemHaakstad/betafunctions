@@ -26,6 +26,11 @@ dBeta.pBeta(x, l, u, alpha, beta, n, c, lower.tail = FALSE)
 \description{
 The Beta Compound Beta distribution: The product of the four-parameter Beta probability density function and the Beta cumulative probability function. Used in the Livingston and Lewis approach to classification accuracy and consistency, the output can be interpreted as the population density of passing scores produced at "x" (a value of true-score).
 }
+\section{Deprecated}{
+
+This function is deprecated and will be removed in a future version. Modelling measurement error as Beta distributed with mean equal to the true score and concentration n has no grounding in the Livingston and Lewis or strong true-score models. Use dBeta.pBinom() (Binomial error) instead.
+}
+
 \examples{
 # Given a four-parameter Beta distribution with parameters l = 0.25, u = 0.75,
 # alpha = 5, and beta = 3, and a Beta error distribution with number of
@@ -53,3 +58,7 @@ Livingston, Samuel A. and Lewis, Charles. (1995). Estimating the Consistency and
 
 Lord, Frederic M. (1965). A Strong True-Score Theory, With Applications. Psychometrika, 30(3).
 }
+\seealso{
+\code{\link{betafunctions-deprecated}}
+}
+\keyword{internal}

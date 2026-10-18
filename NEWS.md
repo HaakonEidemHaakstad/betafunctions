@@ -2,9 +2,21 @@
 
 A full audit and refactor of every function. Arguments and output structures are unchanged; outputs differ only where the previous implementation was wrong or numerically inaccurate (listed below).
 
+## Deprecated functions
+
+The following functions now issue a deprecation warning and will be removed in a future version (see `?"betafunctions-deprecated"`):
+
+- `MLA()`, `MLB()`, `MLM()`: they return the parameters of a Beta distribution with the same alpha + beta whose mode equals an observed proportion. That is a re-parameterization, not an estimate of a "most likely" true-score distribution.
+
+- `dGammaBinom()`, `pGammaBinom()`, `qGammaBinom()`, `rGammaBinom()`, `dBeta.pGammaBinom()`: interpolating the Binomial pmf with Gamma functions does not give a density, and its renormalized version is not derived from any model of item responses, so it has no basis as an error model for non-integer effective test lengths. `gchoose()` is retained.
+
+- `dBeta.pBeta()`: a Beta-distributed error with mean equal to the true score and concentration `n` has no grounding in the Livingston and Lewis or strong true-score models. Use `dBeta.pBinom()`.
+
 ## New functions
 
 - `MN.CA()`, `MN.CA.MC()`, and `MN.ROC()` implement the multinomial and compound multinomial approach to classification accuracy and consistency of Lee (2007) and Lee, Brennan, and Wan (2009), as in the MULT-CLASS program. They mirror the `LL.` and `HB.` functions' arguments and output, so `MC.out.tabular()` works on `MN.CA.MC()` output. Items can be grouped into fixed, weighted item sets with any score points. Brennan and Lee's (2006) bias correction is optional (on by default), and examinee-level results are available with `conditional = TRUE`. `MN.CA.MC()` also reports the ordered over- and underclassification rates. The implementation reproduces both example analyses distributed with MULT-CLASS v3.0 to the five printed decimals.
+
+- `LL.CA()`, `LL.CA.MC()`, `HB.CA()`, and `HB.CA.MC()` gain `conditional = FALSE`. With `TRUE`, they return accuracy and consistency conditional on each possible observed score, together with each score's expected proportion and the posterior probability of each true category. Weighting the conditional values by the expected proportions recovers the overall indices.
 
 ## Bug fixes (outputs change)
 
@@ -33,6 +45,10 @@ A full audit and refactor of every function. Arguments and output structures are
 - `betamedian()` returned the approximation `(alpha - 1/3) / (alpha + beta - 2/3)`, which is inaccurate for small shape parameters. It now returns the exact median.
 
 - `dGammaBinom()` and `gchoose()` returned `NaN` for `size` above about 170 (Gamma-function overflow). These are now computed on the log scale where needed.
+
+- `dfac()` set values of `x` below `r` to zero. That is correct for integers but not for the non-integer effective scores used when `Beta.tp.fit()` estimates the true-score moments, where it made the estimator jump discontinuously. It now computes the falling factorial for any real `x`.
+
+- `rcBinom()` and `rBetacBinom()` handled negative probabilities from Lord's two-term approximation by adding the absolute value of the smallest probability to every score, which spread probability mass across the whole scale. Negative probabilities are now set to zero before renormalizing.
 
 - `qGammaBinom(p = 0 or 1, lower.tail = FALSE)` returned the wrong end-point. The bisection search, which could loop forever, is replaced by `uniroot()`.
 

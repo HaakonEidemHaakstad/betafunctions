@@ -546,8 +546,13 @@ Beta.gfx.poly.cdf <- function(from, to, by, alpha, beta, l = 0, u = 1) {
 #' # yield an alpha parameter of 10 and a beta parameter of 8, calculate the
 #' # true-alpha parameter most likely to have produced the observations:
 #' MLA(a = 10, b = 8)
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. It returns the parameters of a Beta distribution with the same alpha + beta whose mode equals an observed proportion. That is a re-parameterization, not an estimate: the mode of a distribution is not the maximum-likelihood value of its parameters, and nothing identifies the result as the 'most likely' true-score distribution.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 MLA <- function(alpha, beta, x = NULL, n = NULL) {
+  .deprecated("MLA", "See ?betafunctions-deprecated.")
   if (is.null(x) || is.null(n)) {
     # Use the mean of the fitted distribution as the observed proportion.
     n <- alpha + beta
@@ -569,8 +574,13 @@ MLA <- function(alpha, beta, x = NULL, n = NULL) {
 #' # true-beta parameter most likely to have produced the observations:
 #' MLB(a = 10, b = 8)
 #' @return The Beta shape-parameter value for the Standard Beta probability density distribution where the observed mean is the expected mode.
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. It returns the parameters of a Beta distribution with the same alpha + beta whose mode equals an observed proportion. That is a re-parameterization, not an estimate: the mode of a distribution is not the maximum-likelihood value of its parameters, and nothing identifies the result as the 'most likely' true-score distribution.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 MLB <- function(alpha, beta, x = NULL, n = NULL) {
+  .deprecated("MLB", "See ?betafunctions-deprecated.")
   if (is.null(x) || is.null(n)) {
     n <- alpha + beta
     x <- alpha / n
@@ -591,8 +601,13 @@ MLB <- function(alpha, beta, x = NULL, n = NULL) {
 #' # true-mean most likely to have produced the observations:
 #' MLM(a = 10, b = 8)
 #' @return The expected mean of the Standard Beta probability density distribution, for which the observed mean is the most likely value.
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. It returns the parameters of a Beta distribution with the same alpha + beta whose mode equals an observed proportion. That is a re-parameterization, not an estimate: the mode of a distribution is not the maximum-likelihood value of its parameters, and nothing identifies the result as the 'most likely' true-score distribution.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 MLM <- function(alpha, beta, x = NULL, n = NULL) {
+  .deprecated("MLM", "See ?betafunctions-deprecated.")
   if (is.null(x) || is.null(n)) {
     n <- alpha + beta
     x <- alpha / n
@@ -892,6 +907,10 @@ dBeta.pBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
 #' @references Livingston, Samuel A. and Lewis, Charles. (1995). Estimating the Consistency and Accuracy of Classifications Based on Test Scores. Journal of Educational Measurement, 32(2).
 #' @references Lord, Frederic M. (1965). A Strong True-Score Theory, With Applications. Psychometrika, 30(3).
 #' @references Loeb, D. E. (1992). A generalization of the binomial coefficients. Discrete Mathematics, 105(1-3).
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 #' @examples
 #' # Given a four-parameter Beta distribution with parameters l = 0.25, u = 0.75,
@@ -913,12 +932,13 @@ dBeta.pBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
 #' integrate(function(x) { dBeta.pGammaBinom(x, 0.25, 0.75, 5, 3, 10, 0.5) },
 #' lower = 0.25, upper = 0.5)
 dBeta.pGammaBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
+  .deprecated("dBeta.pGammaBinom", "See ?betafunctions-deprecated.")
   density <- dBeta.4P(x, l, u, alpha, beta)
   out <- density
   # pGammaBinom() integrates numerically, so only evaluate it where the
   # density is non-zero.
   inside <- !is.na(density) & density != 0
-  out[inside] <- density[inside] * pGammaBinom(n * c, n, x[inside], lower.tail = lower.tail)
+  out[inside] <- density[inside] * .pgammabinom(n * c, n, x[inside], lower.tail = lower.tail)
   out
 }
 
@@ -955,8 +975,13 @@ dBeta.pGammaBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
 #' # calculated as:
 #' integrate(function(x) { dBeta.pBeta(x, 0.25, 0.75, 5, 3, 10, 0.5) },
 #' lower = 0.25, upper = 0.5)
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. Modelling measurement error as Beta distributed with mean equal to the true score and concentration n has no grounding in the Livingston and Lewis or strong true-score models. Use dBeta.pBinom() (Binomial error) instead.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 dBeta.pBeta <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
+  .deprecated("dBeta.pBeta", "Use dBeta.pBinom() instead.")
   dBeta.4P(x, l, u, alpha, beta) * stats::pbeta(c, x * n, (1 - x) * n, lower.tail = lower.tail)
 }
 
@@ -1004,8 +1029,17 @@ gchoose <- function(n, k) {
 #'
 #' # Conversely, to attain a value at or above 7.5:
 #' pGammaBinom(q = 7.5, size = 10.5, prob = 0.75, lower.tail = FALSE)
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 pGammaBinom <- function(q, size, prob, lower.tail = TRUE) {
+  .deprecated("pGammaBinom", "See ?betafunctions-deprecated.")
+  .pgammabinom(q, size, prob, lower.tail)
+}
+
+.pgammabinom <- function(q, size, prob, lower.tail = TRUE) {
   n <- max(length(q), length(prob))
   q <- rep_len(q, n)
   prob <- rep_len(prob, n)
@@ -1016,7 +1050,7 @@ pGammaBinom <- function(q, size, prob, lower.tail = TRUE) {
 # Gamma-extended Binomial distribution, with the normalizing integral computed
 # once.
 .gammabinom_cdf <- function(size, prob) {
-  kernel <- function(y) dGammaBinom(y, size, prob)
+  kernel <- function(y) .dgammabinom(y, size, prob)
   total <- stats::integrate(kernel, lower = 0, upper = size)$value
   function(q, lower.tail = TRUE) {
     q <- min(max(q, 0), size)
@@ -1048,8 +1082,17 @@ pGammaBinom <- function(q, size, prob, lower.tail = TRUE) {
 #' dGammaBinom(x = 7.5, size = 10.5, prob = 0.75, nc = TRUE)
 #' dGammaBinom(x = 7, size = 10, prob = 0.75) == dbinom(7, 10, 0.75)
 #' dGammaBinom(x = 7, size = 10, prob = 0.75, nc = TRUE) == dbinom(7, 10, 0.75)
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 dGammaBinom <- function(x, size, prob, nc = FALSE) {
+  .deprecated("dGammaBinom", "See ?betafunctions-deprecated.")
+  .dgammabinom(x, size, prob, nc)
+}
+
+.dgammabinom <- function(x, size, prob, nc = FALSE) {
   kernel <- function(y) {
     len <- max(length(y), length(prob))
     y <- rep_len(y, len)
@@ -1087,9 +1130,14 @@ dGammaBinom <- function(x, size, prob, nc = FALSE) {
 #' # "number of trials" = 10.5 and probability of "success" for each "trial"
 #' # = 0.75 To draw a random value from this distribution:
 #' rGammaBinom(n = 1, size = 10, prob = 0.75)
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 rGammaBinom <- function(n, size, prob, precision = 1e-4) {
-  qGammaBinom(stats::runif(n, 0, 1), size = size, prob = prob, precision = precision)
+  .deprecated("rGammaBinom", "See ?betafunctions-deprecated.")
+  .qgammabinom(stats::runif(n, 0, 1), size = size, prob = prob, precision = precision)
 }
 
 #' Quantile function for the Gamma-extended Binomial distribution.
@@ -1111,8 +1159,17 @@ rGammaBinom <- function(n, size, prob, precision = 1e-4) {
 #' # trials = 10 and probability of success per trial of 0.75, calculate the
 #' # number of successful trials at or above the 25% quantile:
 #' qGammaBinom(p = 0.25, size = 10, prob = 0.75, lower.tail = FALSE)
+#' @section Deprecated:
+#' This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+#' @seealso \code{\link{betafunctions-deprecated}}
+#' @keywords internal
 #' @export
 qGammaBinom <- function(p, size, prob, lower.tail = TRUE, precision = 1e-7) {
+  .deprecated("qGammaBinom", "See ?betafunctions-deprecated.")
+  .qgammabinom(p, size, prob, lower.tail, precision)
+}
+
+.qgammabinom <- function(p, size, prob, lower.tail = TRUE, precision = 1e-7) {
   cdf <- .gammabinom_cdf(size, prob)
   vapply(p, function(target) {
     if (is.na(target) || target < 0 || target > 1) {
@@ -1175,7 +1232,7 @@ pcBinom <- function(q, N, k, p, lower.tail = TRUE) {
 #' @param N Number of trials.
 #' @param k Lord's k (see documentation for the \code{Lords.k()} function).
 #' @param p Probability of success for each trial.
-#' @note For larger values of \code{k}, the distribution can yield negative probabilities. This function handles such occurrences by adding the absolute value of the minimum probability to all observations if there are any negative probabilities and then normalize the distribution so that the total density is equal to 1. If \code{p} is a vector it is recycled to length \code{n}, and one value is drawn per element.
+#' @note For larger values of \code{k}, Lord's two-term approximation can yield negative probabilities. These are set to zero and the remaining probabilities renormalized, with a warning. (Prior to version 1.9.1 the absolute value of the smallest probability was added to every probability, which moved probability mass to every possible score.) If \code{p} is a vector it is recycled to length \code{n}, and one value is drawn per element.
 #' @export
 #' @examples
 #' # To draw a sample of 50 values from a Compound-Binomial distribution with
@@ -1196,12 +1253,12 @@ rcBinom <- function(n, N, k, p) {
     weights <- dcBinom(0:N, N, k, pi)
     if (any(weights < 0)) {
       negative <<- TRUE
-      weights <- weights + abs(min(weights))
+      weights[weights < 0] <- 0
     }
     sample(0:N, size = 1, prob = weights / sum(weights), replace = TRUE)
   }, integer(1))
   if (negative) {
-    warning("Density function returned negative probabilities.")
+    warning("Density function returned negative probabilities; these were set to zero.")
   }
   draws
 }
@@ -1241,7 +1298,7 @@ dBetacBinom <- function(x, N, k, l, u, alpha, beta) {
 #' @param u The upper-bound location parameter of the four-parameter Beta distribution.
 #' @param alpha The first shape-parameter of the four-parameter Beta distribution.
 #' @param beta The second shape-parameter of the four-parameter Beta distribution.
-#' @note For larger values of \code{k}, the distribution can yield negative probabilities. As in \code{rcBinom()}, these are handled by shifting all probabilities up by the absolute value of the minimum and re-normalizing, with a warning.
+#' @note For larger values of \code{k}, the distribution can yield negative probabilities. As in \code{rcBinom()}, these are set to zero and the remaining probabilities renormalized, with a warning.
 #' @export
 #' @examples
 #' # To draw a sample of 50 values from a Beta Compound-Binomial distribution

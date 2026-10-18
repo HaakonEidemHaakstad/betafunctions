@@ -21,9 +21,18 @@ The Alpha shape-parameter value for the Standard Beta probability density distri
 \description{
 Given a fitted Standard (two-parameter) Beta Distribution, return the alpha shape-parameter value where the observed mean becomes the mode.
 }
+\section{Deprecated}{
+
+This function is deprecated and will be removed in a future version. It returns the parameters of a Beta distribution with the same alpha + beta whose mode equals an observed proportion. That is a re-parameterization, not an estimate: the mode of a distribution is not the maximum-likelihood value of its parameters, and nothing identifies the result as the 'most likely' true-score distribution.
+}
+
 \examples{
 # Assuming a prior Standard (two-parameter) Beta distribution is fit, which
 # yield an alpha parameter of 10 and a beta parameter of 8, calculate the
 # true-alpha parameter most likely to have produced the observations:
 MLA(a = 10, b = 8)
 }
+\seealso{
+\code{\link{betafunctions-deprecated}}
+}
+\keyword{internal}

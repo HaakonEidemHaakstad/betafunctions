@@ -65,6 +65,7 @@ R.ETL <- function(mean, variance, min = 0, max = 1, ETL) {
 #' @param l If \code{true.model = "2P"} or \code{failsafe = TRUE}, the lower-bound location parameter to be used in the two-parameter fitting procedure. Default is 0 (i.e., the lower-bound of the Standard Beta distribution).
 #' @param u If \code{true.model = "2P"} or \code{failsafe = TRUE}, the upper-bound location parameter to be used in the two-parameter fitting procedure. Default is 1 (i.e., the upper-bound of the Standard Beta distribution).
 #' @param modelfit Allows for controlling the chi-square test for model fit. The argument takes either a vector of two values, or \code{NULL}. If set to \code{NULL}, the model-fit test is not executed. If a vector of values is supplied, the first value is to represent the initial number of bins the distribution of scores is to be divided in to. This value is set to a default of 100. If this default results in too few bins to conduct the chi-square test, this value can be made larger. The second value represents the minimum expected number of observations that the bins should consist of. In accordance with standard recommendations for chi-square tests, the default value is set to 10. Degrees of freedom are the number of bins minus one, minus the number of moments matched when fitting the true-score distribution (two for a two-parameter solution, four otherwise), following Lord (1965, p. 244). Lord (1965) grouped score points only as far as necessary to obtain expected frequencies of at least 1.0 per class; \code{modelfit = c(nbins, 1)} applies that rule (the default minimum of 10 gives a coarser, less sensitive test). Note that the test is carried out on observed scores rescaled and rounded to the effective test length, as the Livingston and Lewis model defines the observed-score distribution on that scale.
+#' @param conditional Logical. Whether to include classification accuracy and consistency conditional on each possible observed score. Default is \code{FALSE}. If \code{TRUE}, the output gains a data frame \code{conditional} with one row per possible observed score (on the effective-test-length scale, reported in the original score metric): the score, its expected proportion under the fitted model, its observed category, the probability that an examinee with that score is classified into their true category (\code{accuracy}), the probability that two independent administrations classify such an examinee into the same category (\code{consistency}), and the posterior probability of each true category. Averaging \code{accuracy} or \code{consistency} weighted by \code{proportion} gives the overall indices.
 #' @return A list containing the estimated parameters necessary for the approach (i.e., the effective test-length and the beta distribution parameters), a chi-square test of model-fit, the confusion matrix containing estimated proportions of true/false pass/fail categorizations for a test, diagnostic performance statistics, and / or a classification consistency matrix and indices. Accuracy output includes a confusion matrix and diagnostic performance indices, and consistency output includes a consistency matrix and consistency indices \code{p} (expected proportion of agreement between two independent test administrations), \code{p_c} (proportion of agreement on two independent administrations expected by chance alone), and \code{Kappa} (Cohen's Kappa).
 #' @note It should be noted that this implementation differs from the original articulation of Livingston and Lewis (1995) in some respects. First, the procedure includes a number of diagnostic performance (accuracy) indices which the original procedure enables but that were not included. Second, the way consistency is calculated differs substantially from the original articulation of the procedure, which made use of a split-half approach. Rather, this implementation uses the approach to estimating classification consistency outlined by Hanson (1991).
 #' @note A shiny application providing a GUI for this method is available at https://hthaa.shinyapps.io/shinybeta/ .
@@ -114,7 +115,7 @@ R.ETL <- function(mean, variance, min = 0, max = 1, ETL) {
 #' @references Lord. Frederic M. (1965). A Strong True-Score Theory, With Applications. Psychometrika, 30(3).
 #' @references Lewis, Don and Burke, C. J. (1949). The Use and Misuse of the Chi-Square Test. Psychological Bulletin, 46(6).
 #' @export
-LL.CA <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = "4P", truecut = NULL, output = c("accuracy", "consistency"), failsafe = TRUE, l = 0, u = 1, modelfit = c("nbins" = 100, "minbin" = 10)) {
+LL.CA <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = "4P", truecut = NULL, output = c("accuracy", "consistency"), failsafe = TRUE, l = 0, u = 1, modelfit = c("nbins" = 100, "minbin" = 10), conditional = FALSE) {
   model <- .true_model(true.model)
   from_scores <- !is.list(x)
   if (from_scores) {
@@ -166,6 +167,14 @@ LL.CA <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = "4P
     out <- c(out, .binary_consistency(ii = integrate_tp(function(p) below(p)^2), ij = p.ij, ji = p.ij,
                                       jj = integrate_tp(function(p) above(p)^2)))
   }
+  if (conditional) {
+    out[["conditional"]] <- .conditional_by_score(
+      0:N, min + (0:N) / N * (max - min),
+      pmf_at = function(s, p) stats::dbinom(s, N, p),
+      category_of = function(s) 1 + (s >= observed_cut),
+      category_prob = function(p, j) if (j == 1) below(p) else above(p),
+      truebounds = c(0, truecut, 1), integrate_tp = integrate_tp)
+  }
   out
 }
 
@@ -207,6 +216,7 @@ LL.CA <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = "4P
 #' @param l If \code{true.model = "2P"} or \code{failsafe = TRUE}, the lower-bound location parameter to be used in the two-parameter fitting procedure. Default is 0 (i.e., the lower-bound of the Standard Beta distribution).
 #' @param u If \code{true.model = "2P"} or \code{failsafe = TRUE}, the upper-bound location parameter to be used in the two-parameter fitting procedure. Default is 1 (i.e., the upper-bound of the Standard Beta distribution).
 #' @param modelfit Allows for controlling the chi-square test for model fit. The argument takes either a vector of two values, or \code{NULL}. If set to \code{NULL}, the model-fit test is not executed. If a vector of values is supplied, the first value is to represent the initial number of bins the distribution of scores is to be divided in to. This value is set to a default of 100. If this default results in too few bins to conduct the chi-square test, this value can be made larger. The second value represents the minimum expected number of observations that the bins should consist of. In accordance with standard recommendations for chi-square tests, the default value is set to 10. Degrees of freedom are the number of bins minus one, minus the number of moments matched when fitting the true-score distribution (two for a two-parameter solution, four otherwise), following Lord (1965, p. 244). Lord (1965) grouped score points only as far as necessary to obtain expected frequencies of at least 1.0 per class; \code{modelfit = c(nbins, 1)} applies that rule (the default minimum of 10 gives a coarser, less sensitive test). Note that the test is carried out on observed scores rescaled and rounded to the effective test length, as the Livingston and Lewis model defines the observed-score distribution on that scale.
+#' @param conditional Logical. Whether to include classification accuracy and consistency conditional on each possible observed score. Default is \code{FALSE}. If \code{TRUE}, the output gains a data frame \code{conditional} with one row per possible observed score (on the effective-test-length scale, reported in the original score metric): the score, its expected proportion under the fitted model, its observed category, the probability that an examinee with that score is classified into their true category (\code{accuracy}), the probability that two independent administrations classify such an examinee into the same category (\code{consistency}), and the posterior probability of each true category. Averaging \code{accuracy} or \code{consistency} weighted by \code{proportion} gives the overall indices.
 #' @return A list containing the estimated parameters necessary for the approach (i.e., the effective test-length and the beta distribution parameters), a chi-square test of model-fit, the confusion matrix containing estimated proportions of true/false positive/negative categorizations for a test, diagnostic performance statistics, and/or a classification consistency matrix and indices. Accuracy output includes a confusion matrix and diagnostic performance indices, and consistency output includes a consistency matrix and consistency indices \code{p} (expected proportion of agreement between two independent test administrations), \code{p_c} (proportion of agreement on two independent administrations expected by chance alone), and \code{Kappa} (Cohen's Kappa).
 #' @note It should be noted that this implementation differs from the original articulation of Livingston and Lewis (1995) in some respects. First, the procedure includes a number of diagnostic performance (accuracy) indices which the original procedure enables but that were not included. Second, the way consistency is calculated differs substantially from the original articulation of the procedure, which made use of a split-half approach. Rather, this implementation uses the approach to estimating classification consistency outlined by Hanson (1991).
 #' @examples
@@ -250,7 +260,7 @@ LL.CA <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = "4P
 #' @references Lord. Frederic M. (1965). A Strong True-Score Theory, With Applications. Psychometrika, 30(3).
 #' @references Lewis, Don and Burke, C. J. (1949). The Use and Misuse of the Chi-Square Test. Psychological Bulletin, 46(6).
 #' @export
-LL.CA.MC <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = "4P", failsafe = TRUE, l = 0, u = 1, modelfit = c("nbins" = 100, "minbin" = 10)) {
+LL.CA.MC <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = "4P", failsafe = TRUE, l = 0, u = 1, modelfit = c("nbins" = 100, "minbin" = 10), conditional = FALSE) {
   model <- .true_model(true.model)
   from_scores <- !is.list(x)
   if (from_scores) {
@@ -306,6 +316,13 @@ LL.CA.MC <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = 
     }
   }
   out[["consistency"]] <- .mc_consistency(ccmat / sum(ccmat))
+  if (conditional) {
+    out[["conditional"]] <- .conditional_by_score(
+      0:N, min + (0:N) / N * (max - min),
+      pmf_at = function(s, p) stats::dbinom(s, N, p),
+      category_of = function(s) 1 + sum(s >= ocut[-c(1, K + 1)]),
+      category_prob = category_prob, truebounds = pcut, integrate_tp = integrate_tp)
+  }
   out
 }
 
@@ -720,10 +737,11 @@ HB.beta.tp.fit <- function(x, N, k, true.model = "4P", failsafe = FALSE, l = 0, 
 #' Descending (falling) factorial.
 #'
 #' @description Calculate the descending (or falling) factorial of a value \code{x} of order \code{r}.
+#' @details The falling factorial is \eqn{x (x - 1) \cdots (x - r + 1)} for any real \code{x}. Prior to version 1.9.1, values of \code{x} below \code{r} were set to zero, which is correct for integers but introduced a discontinuity for the non-integer effective scores used by the Livingston and Lewis approach (\code{Beta.tp.fit()}).
 #' @param x A value for which the descending factorial is to be calculated.
 #' @param r The power \code{x} is to be raised to.
 #' @return The descending factorial of value \code{x} raised to the \code{r}'th power.
-#' @param method The method by which the descending factorials are to be calculated. Default is \code{"product"} which uses direct arithmetic. Alternative is \code{"gamma"} which calculates the ascending factorial using the Gamma function. The alternative method might be faster but might fail because the Gamma function is not defined for negative integers (returning Inf).
+#' @param method The method by which the descending factorials are to be calculated. Default is \code{"product"} which uses direct arithmetic. Alternative is \code{"gamma"} which calculates the descending factorial using the Gamma function. The alternative method might be faster but might fail because the Gamma function is not defined for negative integers (returning Inf).
 #' @export
 #' @examples
 #' # To calculate the 4th descending factorial for a value (e.g., 3.14):
@@ -735,9 +753,6 @@ dfac <- function(x, r, method = "product") {
   if (method != "product") {
     return(gamma(x + 1) / gamma(x - r + 1))
   }
-  # Values below the order are set to zero (as the falling factorial of an
-  # integer smaller than r is zero).
-  x <- ifelse(x < r, 0, x)
   if (r <= 1) {
     return(x^r)
   }
@@ -753,7 +768,7 @@ dfac <- function(x, r, method = "product") {
 #' @description Calculate the ascending (or rising) factorial of a value \code{x} of order \code{r}.
 #' @param x A value for which the ascending factorial is to be calculated.
 #' @param r The power \code{x} is to be raised to.
-#' @param method The method by which the descending factorials are to be calculated. Default is \code{"product"} which uses direct arithmetic. Alternative is \code{"gamma"} which calculates the descending factorial using the Gamma function. The alternative method might be faster but might fail because the Gamma function is not defined for negative integers (returning Inf).
+#' @param method The method by which the ascending factorials are to be calculated. Default is \code{"product"} which uses direct arithmetic. Alternative is \code{"gamma"} which calculates the ascending factorial using the Gamma function. The alternative method might be faster but might fail because the Gamma function is not defined for negative integers (returning Inf).
 #' @return The ascending factorial of value \code{x} raised to the \code{r}'th power.
 #' @export
 #' @examples
@@ -1000,6 +1015,7 @@ Lords.k <- function(x, N, reliability) {
 #' @param u If \code{true.model = "2P"} or \code{failsafe = TRUE}, the upper-bound location parameter to be used in the two-parameter fitting procedure. Default is 1 (i.e., the upper-bound of the Standard Beta distribution).
 #' @param modelfit Allows for controlling the chi-square test for model fit by setting the minimum bin-size for expected observations. Can alternatively be set to \code{NULL} to forego model-fit testing (speeding up the function). In accordance with standard recommendations for chi-square tests the default input to this argument is 10. Expected and observed frequencies are compared at each possible sum score, merging adjacent scores only where the expected frequency falls below this minimum. Degrees of freedom are the number of bins minus one, minus the number of moments matched when fitting the true-score distribution (two for a two-parameter solution, four otherwise); no degree of freedom is deducted for Lord's k. With \code{modelfit = 1} this reproduces the procedure of Lord (1965, pp. 244, 249), which yields \eqn{n - 4} degrees of freedom for an ungrouped four-parameter fit.
 #' @note This implementation of the Hanson-Brennan approach is much slower than the implementation of the Livingston and Lewis approach, as there is no native implementation of Lord's two-term approximation to the Compound-Binomial distribution in R. This implementation uses a "brute-force" method of computing the cumulative probabilities from the compound-Binomial distribution, which will by necessity be more resource intensive.
+#' @param conditional Logical. Whether to include classification accuracy and consistency conditional on each possible observed score. Default is \code{FALSE}. If \code{TRUE}, the output gains a data frame \code{conditional} with one row per possible observed score (0 to the test length): the score, its expected proportion under the fitted model, its observed category, the probability that an examinee with that score is classified into their true category (\code{accuracy}), the probability that two independent administrations classify such an examinee into the same category (\code{consistency}), and the posterior probability of each true category. Averaging \code{accuracy} or \code{consistency} weighted by \code{proportion} gives the overall indices.
 #' @return A list containing the estimated parameters necessary for the approach (i.e., the effective test-length and the beta distribution parameters), a chi-square test of model-fit, the confusion matrix containing estimated proportions of true/false pass/fail categorizations for a test, diagnostic performance statistics, and / or a classification consistency matrix and indices. Accuracy output includes a confusion matrix and diagnostic performance indices, and consistency output includes a consistency matrix and consistency indices \code{p} (expected proportion of agreement between two independent test administrations), \code{p_c} (proportion of agreement on two independent administrations expected by chance alone), and \code{Kappa} (Cohen's Kappa).
 #' @examples
 #' # Generate some fictional data. Say, 1000 individuals take a test with a
@@ -1024,7 +1040,7 @@ Lords.k <- function(x, N, reliability) {
 #' @references Lord. Frederic M. (1965). A Strong True-Score Theory, With Applications. Psychometrika, 30(3).
 #' @references Lewis, Don and Burke, C. J. (1949). The Use and Misuse of the Chi-Square Test. Psychological Bulletin, 46(6).
 #' @export
-HB.CA <- function(x = NULL, reliability, cut, testlength, true.model = "4P", truecut = NULL, output = c("accuracy", "consistency"), failsafe = TRUE, l = 0, u = 1, modelfit = 10) {
+HB.CA <- function(x = NULL, reliability, cut, testlength, true.model = "4P", truecut = NULL, output = c("accuracy", "consistency"), failsafe = TRUE, l = 0, u = 1, modelfit = 10, conditional = FALSE) {
   model <- .true_model(true.model)
   from_scores <- !is.list(x)
   if (from_scores) {
@@ -1069,6 +1085,14 @@ HB.CA <- function(x = NULL, reliability, cut, testlength, true.model = "4P", tru
     p.ij <- integrate_tp(function(p) below(p) * above(p))
     out <- c(out, .binary_consistency(ii = integrate_tp(function(p) below(p)^2), ij = p.ij, ji = p.ij,
                                       jj = integrate_tp(function(p) above(p)^2)))
+  }
+  if (conditional) {
+    out[["conditional"]] <- .conditional_by_score(
+      0:N, 0:N,
+      pmf_at = function(s, p) dcBinom(s, N, k, p),
+      category_of = function(s) 1 + (s >= cut),
+      category_prob = function(p, j) if (j == 1) below(p) else above(p),
+      truebounds = c(0, truecut, 1), integrate_tp = integrate_tp)
   }
   out
 }
@@ -1157,6 +1181,7 @@ HB.ROC <- function(x = NULL, reliability, testlength, truecut, true.model = "4P"
 #' @param l If \code{true.model = "2P"} or \code{failsafe = TRUE}, the lower-bound location parameter to be used in the two-parameter fitting procedure. Default is 0 (i.e., the lower-bound of the Standard Beta distribution).
 #' @param u If \code{true.model = "2P"} or \code{failsafe = TRUE}, the upper-bound location parameter to be used in the two-parameter fitting procedure. Default is 1 (i.e., the upper-bound of the Standard Beta distribution).
 #' @param modelfit Allows for controlling the chi-square test for model fit by setting the minimum bin-size for expected observations. Can alternatively be set to \code{NULL} to forego model-fit testing (speeding up the function). In accordance with standard recommendations for chi-square tests the default input to this argument is 10. Expected and observed frequencies are compared at each possible sum score, merging adjacent scores only where the expected frequency falls below this minimum. Degrees of freedom are the number of bins minus one, minus the number of moments matched when fitting the true-score distribution (two for a two-parameter solution, four otherwise); no degree of freedom is deducted for Lord's k. With \code{modelfit = 1} this reproduces the procedure of Lord (1965, pp. 244, 249), which yields \eqn{n - 4} degrees of freedom for an ungrouped four-parameter fit.
+#' @param conditional Logical. Whether to include classification accuracy and consistency conditional on each possible observed score. Default is \code{FALSE}. If \code{TRUE}, the output gains a data frame \code{conditional} with one row per possible observed score (0 to the test length): the score, its expected proportion under the fitted model, its observed category, the probability that an examinee with that score is classified into their true category (\code{accuracy}), the probability that two independent administrations classify such an examinee into the same category (\code{consistency}), and the posterior probability of each true category. Averaging \code{accuracy} or \code{consistency} weighted by \code{proportion} gives the overall indices.
 #' @return A list containing the estimated parameters necessary for the approach (i.e., Lord's k, test-length, and the true-score Beta distribution parameters), a chi-square test of model-fit, the confusion matrix containing estimated proportions of true/false positive/negative categorizations for a test, diagnostic performance statistics, and/or a classification consistency matrix and indices. Accuracy output includes a confusion matrix and diagnostic performance indices, and consistency output includes a consistency matrix and consistency indices \code{p} (expected proportion of agreement between two independent test administrations), \code{p_c} (proportion of agreement on two independent administrations expected by chance alone), and \code{Kappa} (Cohen's Kappa).
 #' @note This implementation of the Hanson-Brennan approach is much slower than the implementation of the Livingston and Lewis approach, as there is no native implementation of Lord's two-term approximation to the Compound-Binomial distribution in R. This implementation uses a "brute-force" method of computing the cumulative probabilities from the compound-Binomial distribution, which will by necessity be more resource intensive.
 #' @examples
@@ -1186,7 +1211,7 @@ HB.ROC <- function(x = NULL, reliability, testlength, truecut, true.model = "4P"
 #' @references Lord. Frederic M. (1965). A Strong True-Score Theory, With Applications. Psychometrika, 30(3).
 #' @references Lewis, Don and Burke, C. J. (1949). The Use and Misuse of the Chi-Square Test. Psychological Bulletin, 46(6).
 #' @export
-HB.CA.MC <- function(x = NULL, reliability, cut, testlength, true.model = "4P", failsafe = TRUE, l = 0, u = 1, modelfit = 10) {
+HB.CA.MC <- function(x = NULL, reliability, cut, testlength, true.model = "4P", failsafe = TRUE, l = 0, u = 1, modelfit = 10, conditional = FALSE) {
   model <- .true_model(true.model)
   from_scores <- !is.list(x)
   if (from_scores) {
@@ -1237,5 +1262,12 @@ HB.CA.MC <- function(x = NULL, reliability, cut, testlength, true.model = "4P", 
     }
   }
   out[["consistency"]] <- .mc_consistency(ccmat / sum(ccmat))
+  if (conditional) {
+    out[["conditional"]] <- .conditional_by_score(
+      0:N, 0:N,
+      pmf_at = function(s, p) dcBinom(s, N, k, p),
+      category_of = function(s) 1 + sum(s >= cut),
+      category_prob = category_prob, truebounds = truecut, integrate_tp = integrate_tp)
+  }
   out
 }

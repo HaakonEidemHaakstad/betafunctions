@@ -111,11 +111,11 @@
 }
 
 # Make a vector of (possibly slightly negative) probability weights usable by
-# sample(): shift negative weights up as documented, then normalize.
+# sample(): set negative weights to zero, as documented, then renormalize.
 .fix_weights <- function(weights) {
   if (any(weights < 0)) {
-    warning("Density function returned negative probabilities.")
-    weights <- weights + abs(min(weights))
+    warning("Density function returned negative probabilities; these were set to zero.")
+    weights[weights < 0] <- 0
   }
   weights / sum(weights)
 }
@@ -267,6 +267,37 @@
   list(consistencymatrix = ccmat,
        classification.consistency = ccStats(ccmat["i", "i"], ccmat["i", "j"],
                                             ccmat["j", "i"], ccmat["j", "j"]))
+}
+
+# Classification accuracy and consistency conditional on each possible observed
+# score, for the beta true-score models.
+#   scores       integer observed scores (0..N on the model's scale)
+#   labels       the same scores on the reporting scale
+#   pmf_at       function(s, p): probability of observed score s given true score p
+#   category_of  function(s): observed category of score s
+#   category_prob function(p, j): probability of observed category j given p
+#   truebounds   category boundaries on the true-score (proportion) scale
+#   integrate_tp function(f, lower, upper): integral of f against the true-score density
+.conditional_by_score <- function(scores, labels, pmf_at, category_of, category_prob, truebounds, integrate_tp) {
+  K <- length(truebounds) - 1
+  consistency_at <- function(p) Reduce(`+`, lapply(seq_len(K), function(j) category_prob(p, j)^2))
+  rows <- lapply(scores, function(s) {
+    joint <- vapply(seq_len(K), function(i) {
+      integrate_tp(function(p) pmf_at(s, p), truebounds[i], truebounds[i + 1])
+    }, numeric(1))
+    mass <- sum(joint)
+    posterior <- joint / mass
+    c(mass, posterior[category_of(s)], integrate_tp(function(p) pmf_at(s, p) * consistency_at(p)) / mass, posterior)
+  })
+  values <- do.call(rbind, rows)
+  out <- data.frame(score = labels,
+                    proportion = values[, 1],
+                    category = vapply(scores, category_of, numeric(1)),
+                    accuracy = values[, 2],
+                    consistency = values[, 3])
+  posterior <- values[, -(1:3), drop = FALSE]
+  colnames(posterior) <- paste0("P.True.Category.", seq_len(K))
+  cbind(out, posterior)
 }
 
 # ROC coordinates: evaluate `accuracy_at(cut)` (which returns the list produced

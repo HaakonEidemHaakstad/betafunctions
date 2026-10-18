@@ -138,6 +138,9 @@ test_that("reliability coefficients", {
 
 test_that("factorials and true-score moments", {
   expect_equal(dfac(5, 3), 60)
+  # The falling factorial is a polynomial in x (no truncation below r).
+  expect_equal(dfac(2.5, 3), 2.5 * 1.5 * 0.5)
+  expect_equal(dfac(2, 3), 0)
   expect_equal(afac(5, 3), 210)
   expect_equal(dfac(c(3.14, 7), 3, "gamma"), gamma(c(4.14, 8)) / gamma(c(1.14, 5)))
   x <- make_scores()
@@ -148,4 +151,34 @@ test_that("factorials and true-score moments", {
   hb <- HB.beta.tp.fit(x, 100, 0)
   expect_equal(hb[c("alpha", "beta", "l", "u")], fit[c("alpha", "beta", "l", "u")])
   expect_error(Beta.tp.fit(x, 0, 100, 100, true.model = "3P"), "true.model")
+})
+
+test_that("conditional results average to the overall indices", {
+  x <- make_scores()
+  b <- LL.CA(x, 0.7, 50, 0, 100, modelfit = NULL, conditional = TRUE)
+  cd <- b$conditional
+  expect_equal(nrow(cd), b$parameters$etl_rounded + 1)
+  expect_equal(range(cd$score), c(0, 100))
+  expect_equal(sum(cd$proportion), 1, tolerance = 1e-5)
+  expect_equal(sum(cd$proportion * cd$accuracy), b$classification.accuracy$Accuracy, tolerance = 1e-5)
+  expect_equal(sum(cd$proportion * cd$consistency), b$classification.consistency$p, tolerance = 1e-5)
+
+  m <- LL.CA.MC(x, 0.7, c(40, 60), 0, 100, modelfit = NULL, conditional = TRUE)
+  cd <- m$conditional
+  expect_equal(sum(cd$proportion * cd$accuracy), m$accuracy$overall$accuracy, tolerance = 1e-5)
+  expect_equal(sum(cd$proportion * cd$consistency), m$consistency$overall$statistics$p, tolerance = 1e-5)
+  expect_equal(unname(rowSums(cd[, grep("^P.True", names(cd))])), rep(1, nrow(cd)), tolerance = 1e-8)
+
+  set.seed(1234)
+  p <- rBeta.4P(1000, 0.15, 0.85, 6, 4)
+  raw <- sapply(1:20, function(i) rbinom(1000, 1, p))
+  h <- HB.CA(rowSums(raw), cba(raw), 10, 20, modelfit = NULL, conditional = TRUE)
+  cd <- h$conditional
+  expect_equal(cd$score, 0:20)
+  expect_equal(sum(cd$proportion * cd$accuracy), h$classification.accuracy$Accuracy, tolerance = 1e-5)
+  expect_equal(sum(cd$proportion * cd$consistency), h$classification.consistency$p, tolerance = 1e-5)
+  hm <- HB.CA.MC(rowSums(raw), cba(raw), c(8, 12), 20, modelfit = NULL, conditional = TRUE)
+  expect_equal(sum(hm$conditional$proportion * hm$conditional$consistency),
+               hm$consistency$overall$statistics$p, tolerance = 1e-5)
+  expect_null(LL.CA(x, 0.7, 50, 0, 100, modelfit = NULL)$conditional)
 })

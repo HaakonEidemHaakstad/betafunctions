@@ -23,6 +23,11 @@ Quantile function for the Gamma-extended Binomial distribution.
 \note{
 This function uses root-finding (\code{stats::uniroot()}) on the cumulative distribution function to find the number of successes corresponding to the specified quantile(s).
 }
+\section{Deprecated}{
+
+This function is deprecated and will be removed in a future version. Interpolating the Binomial probability mass function with Gamma functions does not give a density (it does not integrate to one), and the renormalized version, although a valid density on [0, size], is not derived from any model of item responses. It therefore has no basis as a measurement-error model for non-integer effective test lengths; round the effective test length and use the Binomial distribution, as LL.CA() does.
+}
+
 \examples{
 # For a Gamma-extended Binomial distribution with number of trials = 10 and
 # probability of success per trial of 0.75, calculate the number of success-
@@ -37,3 +42,7 @@ qGammaBinom(p = 0.25, size = 10, prob = 0.75, lower.tail = FALSE)
 \references{
 Loeb, D. E. (1992). A generalization of the binomial coefficients. Discrete Mathematics, 105(1-3).
 }
+\seealso{
+\code{\link{betafunctions-deprecated}}
+}
+\keyword{internal}

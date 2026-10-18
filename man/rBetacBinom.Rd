@@ -25,7 +25,7 @@ rBetacBinom(x, N, k, l, u, alpha, beta)
 Random number generation under Lord's Beta Compound-Binomial distribution, where the Compound-Binomial distribution is Lord's two-term approximation.
 }
 \note{
-For larger values of \code{k}, the distribution can yield negative probabilities. As in \code{rcBinom()}, these are handled by shifting all probabilities up by the absolute value of the minimum and re-normalizing, with a warning.
+For larger values of \code{k}, the distribution can yield negative probabilities. As in \code{rcBinom()}, these are set to zero and the remaining probabilities renormalized, with a warning.
 }
 \examples{
 # To draw a sample of 50 values from a Beta Compound-Binomial distribution
