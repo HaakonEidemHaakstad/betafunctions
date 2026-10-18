@@ -182,9 +182,12 @@
 #
 # Bins whose expected count is below `minbin` are merged forward into the next
 # bin; if the last bin is still too small it is merged into the one before it.
-# Degrees of freedom are the number of bins minus the number of estimated
-# true-score parameters (2 for a two-parameter solution, 4 otherwise), as in
-# earlier versions of the package.
+# Degrees of freedom follow Lord (1965, p. 244): number of bins minus one
+# (for the fixed total) minus the number of moments matched when fitting the
+# true-score distribution (2 for a two-parameter solution, 4 otherwise). No
+# degree of freedom is deducted for the effective test length or Lord's k,
+# which are estimated from the reliability coefficient rather than from the
+# score distribution.
 .chisq_modelfit <- function(expected, observed, minbin, n_params, rownames = NULL) {
   tab <- rbind(expected, observed)
   dimnames(tab) <- list(rownames, NULL)
@@ -202,7 +205,7 @@
     tab <- tab[, -J, drop = FALSE]
   }
   chisquared <- sum((tab[2, ] - tab[1, ])^2 / tab[1, ])
-  df <- ncol(tab) - n_params
+  df <- ncol(tab) - 1 - n_params
   list(contingencytable = tab,
        chisquared = chisquared,
        df = df,

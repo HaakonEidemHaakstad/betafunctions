@@ -52,11 +52,11 @@ test_that("LL.CA model fit bins observed and expected scores identically", {
   expect_equal(sum(tab[2, ]), length(x))
   expect_equal(sum(tab[1, ]), length(x))
   expect_true(all(tab[1, ] >= 10))
-  expect_equal(out$modelfit$df, ncol(tab) - 4)
+  expect_equal(out$modelfit$df, ncol(tab) - 1 - 4)
   expect_equal(out$modelfit$pvalue, pchisq(out$modelfit$chisquared, out$modelfit$df, lower.tail = FALSE))
 
   two <- LL.CA(x, 0.7, 50, 0, 100, true.model = "2P")
-  expect_equal(two$modelfit$df, ncol(two$modelfit$contingencytable) - 2)
+  expect_equal(two$modelfit$df, ncol(two$modelfit$contingencytable) - 1 - 2)
   expect_equal(two$modelfit$pvalue,
                pchisq(two$modelfit$chisquared, two$modelfit$df, lower.tail = FALSE))
 })
@@ -90,6 +90,10 @@ test_that("Hanson-Brennan functions", {
                       "consistencymatrix", "classification.consistency"))
   expect_equal(rownames(out$modelfit$contingencytable), c("Expected", "Observed"))
   expect_equal(sum(out$modelfit$contingencytable[2, ]), 1000)
+  # Lord (1965): an ungrouped four-parameter fit has n - 4 degrees of freedom.
+  ungrouped <- HB.CA(x, rel, cut = 10, testlength = 20, modelfit = 0, output = "a")
+  expect_equal(ncol(ungrouped$modelfit$contingencytable), 21)
+  expect_equal(ungrouped$modelfit$df, 20 - 4)
 
   mc <- HB.CA.MC(x, rel, cut = 10, testlength = 20, modelfit = NULL)
   expect_equal(unname(mc$consistency$overall$consistencymatrix), unname(out$consistencymatrix), tolerance = 1e-6)
