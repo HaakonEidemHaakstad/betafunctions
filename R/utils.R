@@ -120,6 +120,12 @@
   weights / sum(weights)
 }
 
+# Smallest integer score at or above a (possibly fractional) cut on an integer
+# score scale, ignoring floating-point noise in the cut.
+.score_threshold <- function(cut) {
+  ceiling(cut - 1e-9 * pmax(1, abs(cut)))
+}
+
 # Normalize the `true.model` argument to "4P" or "2P".
 .true_model <- function(true.model) {
   model <- substr(toupper(as.character(true.model)[1]), 1, 1)

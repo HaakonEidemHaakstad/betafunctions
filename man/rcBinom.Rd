@@ -19,7 +19,7 @@ rcBinom(n, N, k, p)
 Random Number Generation under Lord's Two-Term Approximation to the Compound Binomial Distribution.
 }
 \note{
-For larger values of \code{k}, Lord's two-term approximation can yield negative probabilities. These are set to zero and the remaining probabilities renormalized, with a warning. (Prior to version 1.9.1 the absolute value of the smallest probability was added to every probability, which moved probability mass to every possible score.) If \code{p} is a vector it is recycled to length \code{n}, and one value is drawn per element.
+For larger values of \code{k}, Lord's two-term approximation can yield negative probabilities. These are set to zero and the remaining probabilities renormalized, with a warning. (Prior to version 2.0.0 the absolute value of the smallest probability was added to every probability, which moved probability mass to every possible score.) If \code{p} is a vector it is recycled to length \code{n}, and one value is drawn per element.
 }
 \examples{
 # To draw a sample of 50 values from a Compound-Binomial distribution with

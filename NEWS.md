@@ -1,10 +1,10 @@
-# betafunctions v. 1.9.1
+# betafunctions v. 2.0.0
 
-A full audit and refactor of every function. Arguments and output structures are unchanged; outputs differ only where the previous implementation was wrong or numerically inaccurate (listed below).
+A full audit and refactor of every function, deprecation of functions without a theoretical basis, and new functionality. Arguments and output structures of existing functions are unchanged (new arguments are added at the end, with defaults). Outputs differ where the previous implementation was wrong, numerically inaccurate, or used an unfounded estimator; every such change is listed below. The major version reflects these changes in results.
 
 ## Deprecated functions
 
-The following functions now issue a deprecation warning and will be removed in a future version (see `?"betafunctions-deprecated"`):
+The following functions now issue a deprecation warning and will become defunct in the next major version (see `?"betafunctions-deprecated"`):
 
 - `MLA()`, `MLB()`, `MLM()`: they return the parameters of a Beta distribution with the same alpha + beta whose mode equals an observed proportion. That is a re-parameterization, not an estimate of a "most likely" true-score distribution.
 
@@ -28,7 +28,9 @@ The following functions now issue a deprecation warning and will be removed in a
 
 - `pBetaBinom()` and `pcBinom()` gave wrong answers for non-integer `q` and for `q > N`. Both now consistently return P[X < q] (lower tail) or P[X >= q] (upper tail).
 
-- `LL.CA()` used `round(N * cut)` as the observed cut-point for accuracy but `floor(cut * N)` for consistency, so the two disagreed whenever `N * cut` had a fractional part of at least 0.5. Both now use `round()`, matching `LL.CA.MC()`.
+- `LL.CA()` used `round(N * cut)` as the observed cut-point for accuracy but `floor(cut * N)` for consistency, so the two disagreed whenever `N * cut` had a fractional part of at least 0.5. Neither matched the rule that a score at or above the cut passes, which on the effective-test-length scale means an integer score of at least `ceiling(N * cut)`. `LL.CA()`, `LL.CA.MC()` (which used `round()`), and `dBeta.pBinom()` now all use `ceiling()`, so results change whenever `N * cut` is not an integer.
+
+- `observedmoments(correct = TRUE)` divided every central moment by `n - 1`, which is a bias correction only for the variance. It now returns the unbiased estimators of the second to fourth central moments and the k-statistic based (adjusted Fisher-Pearson) skewness and kurtosis. `correct = FALSE` gives the plug-in moments. Because `Beta.4p.fit(scores)` uses these defaults, four-parameter fits to raw scores change slightly.
 
 - Model fit in `LL.CA()` and `LL.CA.MC()`: when bin widths were fractional (the usual case, since the default of 100 bins rarely divides the effective test length), observed scores were binned with `>=`/`<` on the break-points while expected frequencies were computed with `pbinom(break - 1)`. That put the two counts in bins offset by one score, inflating the chi-square statistic. Both now use the same binning rule.
 
@@ -41,8 +43,6 @@ The following functions now issue a deprecation warning and will be removed in a
 - `ccStats()` normalized `p` but not `p_c` by the total, so Kappa was wrong when frequencies rather than proportions were supplied.
 
 - `mdo(fit = TRUE)`: the GFI divided the mean squared residual by the mean (not mean squared) covariance, so it depended on the scale of the data. It now uses the standard ULS form `1 - sum(residual^2) / sum(S^2)`.
-
-- `observedmoments(correct = FALSE)` returned the same standardized moments as `correct = TRUE`. It now uses the population standard deviation. The default output is unchanged.
 
 - `betamedian()` returned the approximation `(alpha - 1/3) / (alpha + beta - 2/3)`, which is inaccurate for small shape parameters. It now returns the exact median.
 

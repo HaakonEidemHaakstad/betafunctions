@@ -19,7 +19,7 @@ betamedian(alpha, beta, l = 0, u = 1)
 Computes the median of a Beta distribution with specified shape- and location parameters.
 }
 \note{
-Versions prior to 1.9.1 returned the closed-form approximation \code{(alpha - 1/3) / (alpha + beta - 2/3)}, which is only accurate for \code{alpha, beta >= 1}. The exact median is now returned.
+Versions prior to 2.0.0 returned the closed-form approximation \code{(alpha - 1/3) / (alpha + beta - 2/3)}, which is only accurate for \code{alpha, beta >= 1}. The exact median is now returned.
 }
 \examples{
 # To calculate the median of a two-parameter (standard) Beta distribution with

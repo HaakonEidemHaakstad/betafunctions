@@ -142,9 +142,10 @@ LL.CA <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = "4P
                                       n_params = if (model == "2P" || fit$engaged) 2 else 4)
   }
 
-  # Observed scores on the effective-test-length scale are classified as
-  # passing when they are at or above round(N * cut).
-  observed_cut <- round(N * cut)
+  # An observed score at or above the cut passes; on the effective-test-length
+  # scale that is an integer score at or above ceiling(N * cut). (The small
+  # tolerance stops floating-point error in N * cut from moving a whole score.)
+  observed_cut <- .score_threshold(N * cut)
   below <- function(p) stats::pbinom(observed_cut - 1, N, p)
   above <- function(p) stats::pbinom(observed_cut - 1, N, p, lower.tail = FALSE)
   integrate_tp <- function(f, lower = 0, upper = 1) {
@@ -285,7 +286,7 @@ LL.CA.MC <- function(x = NULL, reliability, cut, min = 0, max = 1, true.model = 
   }
 
   pcut <- c(0, cut, 1)
-  ocut <- round(pcut * N)
+  ocut <- .score_threshold(pcut * N)
   K <- length(cut) + 1
   # Probability that the observed score falls in category j given true score p.
   category_prob <- function(p, j) {
@@ -568,7 +569,7 @@ cba <- function(x) {
 
 #' Calculate McDonald's Omega reliability-coefficient from supplied variables.
 #'
-#' @description Calculates McDonalds's Omega reliability-coefficient of the sum-score from the Spearman one-factor model (McDonald, 1999). The factor loadings and error variances are estimated by maximum likelihood (\code{method = "ml"}, the default) or by averaging Spearman's triad estimates (\code{method = "triad"}, the only method in versions prior to 1.9.1).
+#' @description Calculates McDonalds's Omega reliability-coefficient of the sum-score from the Spearman one-factor model (McDonald, 1999). The factor loadings and error variances are estimated by maximum likelihood (\code{method = "ml"}, the default) or by averaging Spearman's triad estimates (\code{method = "triad"}, the only method in versions prior to 2.0.0).
 #' @param x A data-frame or matrix of numerical values where rows represent respondents, and columns represent items.
 #' @param fit Logical. Default is \code{FALSE}. If \code{TRUE}, the output changes from a vector containing the Omega reliability-estimate to a list containing additional detailed information concerning the fitted factor model.
 #' @param method The estimator of the one-factor model. \code{"ml"} (default) fits the model by maximum likelihood; \code{"triad"} estimates each item's loading as the mean over all pairs of other items of \eqn{\sqrt{\sigma_{ia}\sigma_{ib}/\sigma_{ab}}}, and its error variance as the item variance minus the squared loading. With \code{"ml"}, the model is fitted with \code{stats::factanal()} and rescales the standardized solution to the covariance metric. Maximum likelihood is the standard estimator, uses all covariances simultaneously, and provides a likelihood-ratio test of the one-factor model; it assumes multivariate normality for the test, though the point estimates remain reasonable under moderate departures.
@@ -589,7 +590,7 @@ cba <- function(x) {
 #' # To estimate McDonald's Omega from this data (maximum likelihood):
 #' mdo(rawdata)
 #'
-#' # Using the triad estimator of versions prior to 1.9.1:
+#' # Using the triad estimator of versions prior to 2.0.0:
 #' mdo(rawdata, method = "triad")
 #'
 #' # To retrieve additional information such as the GFI fit-index, the
@@ -781,7 +782,7 @@ HB.beta.tp.fit <- function(x, N, k, true.model = "4P", failsafe = FALSE, l = 0, 
 #' Descending (falling) factorial.
 #'
 #' @description Calculate the descending (or falling) factorial of a value \code{x} of order \code{r}.
-#' @details The falling factorial is \eqn{x (x - 1) \cdots (x - r + 1)} for any real \code{x}. Prior to version 1.9.1, values of \code{x} below \code{r} were set to zero, which is correct for integers but introduced a discontinuity for the non-integer effective scores used by the Livingston and Lewis approach (\code{Beta.tp.fit()}).
+#' @details The falling factorial is \eqn{x (x - 1) \cdots (x - r + 1)} for any real \code{x}. Prior to version 2.0.0, values of \code{x} below \code{r} were set to zero, which is correct for integers but introduced a discontinuity for the non-integer effective scores used by the Livingston and Lewis approach (\code{Beta.tp.fit()}).
 #' @param x A value for which the descending factorial is to be calculated.
 #' @param r The power \code{x} is to be raised to.
 #' @return The descending factorial of value \code{x} raised to the \code{r}'th power.

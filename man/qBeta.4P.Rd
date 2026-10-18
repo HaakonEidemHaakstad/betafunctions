@@ -26,7 +26,7 @@ A vector of quantiles for specified probabilities or proportions of observations
 Function for calculating the quantile (i.e., value of \code{x}) for a given proportion (i.e., the value of \code{y}) under the Four-Parameter Beta Distribution.
 }
 \note{
-Prior to version 1.9.1, \code{lower.tail = FALSE} returned \code{1 - qbeta(p, alpha, beta)} on the [l, u] scale, which is only correct when \code{alpha == beta}.
+Prior to version 2.0.0, \code{lower.tail = FALSE} returned \code{1 - qbeta(p, alpha, beta)} on the [l, u] scale, which is only correct when \code{alpha == beta}.
 }
 \examples{
 # Assume some variable follows a four-parameter Beta distribution with

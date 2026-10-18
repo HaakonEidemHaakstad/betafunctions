@@ -30,6 +30,12 @@ test_that("LL.CA output structure and internal consistency", {
   expect_equal(sum(out$consistencymatrix), 1)
   expect_equal(out$consistencymatrix["i", "j"], out$consistencymatrix["j", "i"])
 
+  # A score at or above the cut passes: on the effective-test-length scale
+  # the threshold is ceiling(N * cut).
+  N <- out$parameters$etl_rounded
+  b45 <- LL.CA(x, 0.7, 45, 0, 100, modelfit = NULL, conditional = TRUE)
+  expect_equal(min(b45$conditional$score[b45$conditional$category == 2]), ceiling(N * 0.45) / N * 100)
+
   # Binary and multiple-category versions agree for a single cut-point,
   # including cut-points that do not fall on an integer of the effective test
   # length.

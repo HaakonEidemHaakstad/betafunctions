@@ -28,6 +28,8 @@ The Beta Compound Binomial distribution: The product of the four-parameter Beta 
 }
 \note{
 The Binomial distribution cut-point is up-to but not including, unlike the standard behaviour of base-R pbinom() function.
+
+The number of trials is rounded to an integer, and an observed score passes when it is at or above \code{c} times the number of trials, i.e. at or above \code{ceiling(round(n) * c)} successes. (Prior to version 2.0.0, the threshold was \code{round(n * c)}.)
 }
 \examples{
 # Given a four-parameter Beta distribution with parameters l = 0.25, u = 0.75,

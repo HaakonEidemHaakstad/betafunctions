@@ -59,7 +59,17 @@ test_that("moment functions return lists of moment orders", {
   # `correct = FALSE` uses the population standard deviation.
   y <- x[!is.na(x)]
   expect_equal(observedmoments(x, correct = FALSE)$standardized[[2]], 1)
-  expect_equal(observedmoments(x, correct = TRUE)$standardized[[2]], (length(y) - 1) / length(y))
+  expect_equal(observedmoments(x, correct = TRUE)$standardized[[2]], 1)
+  # Unbiased third central moment and k-statistic skewness/kurtosis.
+  n <- length(y)
+  d <- y - mean(y)
+  expect_equal(om$central[[3]], n * sum(d^3) / ((n - 1) * (n - 2)))
+  k2 <- var(y)
+  k4 <- (n * (n + 1) * sum(d^4) - 3 * (n - 1) * sum(d^2)^2) / ((n - 1) * (n - 2) * (n - 3))
+  expect_equal(om$standardized[[3]], om$central[[3]] / k2^1.5)
+  expect_equal(om$standardized[[4]], k4 / k2^2 + 3)
+  expect_equal(observedmoments(x, correct = FALSE)$central[[3]], mean(d^3))
+  expect_length(observedmoments(x, orders = 6)$central, 6)
 })
 
 test_that("betamedian is exact and betamode warns outside its domain", {

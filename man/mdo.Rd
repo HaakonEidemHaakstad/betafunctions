@@ -17,7 +17,7 @@ mdo(x, fit = FALSE, method = c("ml", "triad"))
 If \code{fit = FALSE}, A vector of length 1 containing the estimated McDonalds's Omega reliability-coefficient for the sum-score of the supplied variables. If \code{fit = TRUE}, a list containing the Omega-coefficient reliability-estimate as the first entry, followed by the goodness-of-fit index (GFI, unweighted least squares form), a two-row matrix containing the estimated factor-loadings and error-variances, and the observed and fitted covariance-matrices and the discrepancy matrix. With \code{method = "ml"}, the list also contains \code{Test}: the likelihood-ratio chi-square test of the one-factor model (\code{statistic}, \code{df}, \code{p.value}), which is \code{NA} when the model has zero degrees of freedom (three items).
 }
 \description{
-Calculates McDonalds's Omega reliability-coefficient of the sum-score from the Spearman one-factor model (McDonald, 1999). The factor loadings and error variances are estimated by maximum likelihood (\code{method = "ml"}, the default) or by averaging Spearman's triad estimates (\code{method = "triad"}, the only method in versions prior to 1.9.1).
+Calculates McDonalds's Omega reliability-coefficient of the sum-score from the Spearman one-factor model (McDonald, 1999). The factor loadings and error variances are estimated by maximum likelihood (\code{method = "ml"}, the default) or by averaging Spearman's triad estimates (\code{method = "triad"}, the only method in versions prior to 2.0.0).
 }
 \details{
 Omega is \eqn{(\sum_i \lambda_i)^2 / ((\sum_i \lambda_i)^2 + \sum_i \psi_i)}, where \eqn{\lambda_i} are the factor loadings and \eqn{\psi_i} the error variances on the covariance metric.
@@ -39,7 +39,7 @@ rawdata <- apply(rawdata, 2, function(x) {x + common})
 # To estimate McDonald's Omega from this data (maximum likelihood):
 mdo(rawdata)
 
-# Using the triad estimator of versions prior to 1.9.1:
+# Using the triad estimator of versions prior to 2.0.0:
 mdo(rawdata, method = "triad")
 
 # To retrieve additional information such as the GFI fit-index, the

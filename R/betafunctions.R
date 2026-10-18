@@ -67,7 +67,7 @@ betamode <- function(alpha, beta, l = 0, u = 1) {
 #' Compute Median of Two- and Four-Parameter Beta Probability Density distribution.
 #'
 #' @description Computes the median of a Beta distribution with specified shape- and location parameters.
-#' @note Versions prior to 1.9.1 returned the closed-form approximation \code{(alpha - 1/3) / (alpha + beta - 2/3)}, which is only accurate for \code{alpha, beta >= 1}. The exact median is now returned.
+#' @note Versions prior to 2.0.0 returned the closed-form approximation \code{(alpha - 1/3) / (alpha + beta - 2/3)}, which is only accurate for \code{alpha, beta >= 1}. The exact median is now returned.
 #' @param alpha The alpha shape parameter.
 #' @param beta The beta shape parameter.
 #' @param l The first (lower) location parameter. Default set to \code{0}.
@@ -146,7 +146,8 @@ betabinomialmoments <- function(N, l, u, alpha, beta, types = c("raw", "central"
 #' @param x A vector of values, the distribution of which moments are to be calculated.
 #' @param type A character vector determining which moment-types are to be calculated. Permissible values are \code{"raw"}, \code{"central"}, and \code{"standardized"}.
 #' @param orders The number of moment-orders to be calculated for each of the moment-types.
-#' @param correct Logical. Whether to include bias correction in estimation of orders. Default is \code{TRUE}. For central moments, \code{TRUE} divides the sums of deviations by \code{n - 1} rather than \code{n}. For standardized moments, \code{TRUE} scales deviations by the sample standard deviation (\code{sd()}, denominator \code{n - 1}) and \code{FALSE} by the population standard deviation (denominator \code{n}). (Prior to version 1.9.1, \code{correct} had no effect on the standardized moments.)
+#' @param correct Logical. Default is \code{TRUE}. If \code{TRUE}, central moments of orders 2 to 4 are the unbiased estimators (order 2 is the sample variance with denominator \code{n - 1}, order 3 is \eqn{n \sum d^3 / ((n-1)(n-2))}, order 4 is the unbiased estimator of the fourth central moment), and the standardized moments of orders 3 and 4 are the adjusted Fisher-Pearson skewness \eqn{k_3 / k_2^{3/2}} and kurtosis \eqn{k_4 / k_2^2 + 3} based on k-statistics. If \code{FALSE}, the plug-in moments (denominator \code{n}) are returned. No small-sample correction is applied beyond order 4, so higher orders are plug-in values in either case. These estimators require at least four observations.
+#' @note Prior to version 2.0.0, \code{correct = TRUE} divided every central moment by \code{n - 1}, which is unbiased only for the variance, and scaled standardized moments by the sample standard deviation.
 #' @return A list of moment types, each a list of moment orders.
 #' @examples
 #' # Generate some fictional data. Say, 100 individuals take a test with a
@@ -165,16 +166,31 @@ observedmoments <- function(x, type = c("raw", "central", "standardized"),  orde
   n <- length(x)
   i <- seq_len(orders)
   dev <- x - mean(x)
-  central_sums <- vapply(i, function(r) sum(dev^r), numeric(1))
-  # With correct = TRUE the deviations are scaled by the (n - 1) standard
-  # deviation; with correct = FALSE by the (n) population standard deviation.
-  scale <- if (correct) stats::sd(x) else sqrt(sum(dev^2) / n)
-  .moment_list(
-    type,
-    raw = function() vapply(i, function(r) sum(x^r) / n, numeric(1)),
-    central = function() central_sums / (if (correct) n - 1 else n),
-    standardized = function() central_sums / n / scale^i
-  )
+  sums <- vapply(i, function(r) sum(dev^r), numeric(1))
+  plugin <- sums / n                                   # m_r, the plug-in central moments
+  plugin_std <- plugin / sqrt(sum(dev^2) / n)^i        # m_r / m_2^(r/2)
+  central <- plugin
+  standardized <- plugin_std
+  if (correct) {
+    S2 <- sum(dev^2)
+    S3 <- sum(dev^3)
+    S4 <- sum(dev^4)
+    k2 <- S2 / (n - 1)
+    # Unbiased estimators of the central moments (orders 2-4) and the
+    # k-statistic based (adjusted Fisher-Pearson) skewness and kurtosis.
+    unbiased <- c(0,
+                  k2,
+                  n * S3 / ((n - 1) * (n - 2)),
+                  (n * (n^2 - 2 * n + 3) * S4 / n - 3 * n * (2 * n - 3) * (S2 / n)^2) / ((n - 1) * (n - 2) * (n - 3)))
+    k3 <- unbiased[3]
+    k4 <- (n * (n + 1) * S4 - 3 * (n - 1) * S2^2) / ((n - 1) * (n - 2) * (n - 3))
+    adjusted <- c(0, 1, k3 / k2^1.5, k4 / k2^2 + 3)
+    upto <- seq_len(min(orders, 4))
+    central[upto] <- unbiased[upto]
+    standardized[upto] <- adjusted[upto]
+  }
+  .moment_list(type, raw = function() vapply(i, function(r) sum(x^r) / n, numeric(1)),
+               central = function() central, standardized = function() standardized)
 }
 
 
@@ -751,7 +767,7 @@ pBeta.4P <- function(q, l, u, alpha, beta, lower.tail = TRUE) {
 #' @param alpha The first shape parameter.
 #' @param beta The second shape parameter.
 #' @param lower.tail Logical. If \code{TRUE} (default), returns \code{x} such that P[X <= x] = \code{p}; otherwise \code{x} such that P[X > x] = \code{p}.
-#' @note Prior to version 1.9.1, \code{lower.tail = FALSE} returned \code{1 - qbeta(p, alpha, beta)} on the [l, u] scale, which is only correct when \code{alpha == beta}.
+#' @note Prior to version 2.0.0, \code{lower.tail = FALSE} returned \code{1 - qbeta(p, alpha, beta)} on the [l, u] scale, which is only correct when \code{alpha == beta}.
 #' @return A vector of quantiles for specified probabilities or proportions of observations under the four-parameter Beta distribution.
 #' @examples
 #' # Assume some variable follows a four-parameter Beta distribution with
@@ -868,6 +884,7 @@ Beta.2p.fit <- function(scores = NULL, mean = NULL, variance = NULL, l = 0, u = 
 #' @references Livingston, Samuel A. and Lewis, Charles. (1995). Estimating the Consistency and Accuracy of Classifications Based on Test Scores. Journal of Educational Measurement, 32(2).
 #' @references Lord, Frederic M. (1965). A Strong True-Score Theory, With Applications. Psychometrika, 30(3).
 #' @note The Binomial distribution cut-point is up-to but not including, unlike the standard behaviour of base-R pbinom() function.
+#' @note The number of trials is rounded to an integer, and an observed score passes when it is at or above \code{c} times the number of trials, i.e. at or above \code{ceiling(round(n) * c)} successes. (Prior to version 2.0.0, the threshold was \code{round(n * c)}.)
 #' @examples
 #' # Given a four-parameter Beta distribution with parameters l = 0.25, u = 0.75,
 #' # alpha = 5, and beta = 3, and a Binomial error distribution with number of
@@ -889,7 +906,7 @@ Beta.2p.fit <- function(scores = NULL, mean = NULL, variance = NULL, l = 0, u = 
 #' lower = 0.25, upper = 0.5)
 #' @export
 dBeta.pBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
-  dBeta.4P(x, l, u, alpha, beta) * stats::pbinom(round(n * c) - 1, round(n), x, lower.tail = lower.tail)
+  dBeta.4P(x, l, u, alpha, beta) * stats::pbinom(.score_threshold(round(n) * c) - 1, round(n), x, lower.tail = lower.tail)
 }
 
 #' An implementation of a Beta-density Compound Cumulative Gamma-Binomial Distribution.
@@ -1232,7 +1249,7 @@ pcBinom <- function(q, N, k, p, lower.tail = TRUE) {
 #' @param N Number of trials.
 #' @param k Lord's k (see documentation for the \code{Lords.k()} function).
 #' @param p Probability of success for each trial.
-#' @note For larger values of \code{k}, Lord's two-term approximation can yield negative probabilities. These are set to zero and the remaining probabilities renormalized, with a warning. (Prior to version 1.9.1 the absolute value of the smallest probability was added to every probability, which moved probability mass to every possible score.) If \code{p} is a vector it is recycled to length \code{n}, and one value is drawn per element.
+#' @note For larger values of \code{k}, Lord's two-term approximation can yield negative probabilities. These are set to zero and the remaining probabilities renormalized, with a warning. (Prior to version 2.0.0 the absolute value of the smallest probability was added to every probability, which moved probability mass to every possible score.) If \code{p} is a vector it is recycled to length \code{n}, and one value is drawn per element.
 #' @export
 #' @examples
 #' # To draw a sample of 50 values from a Compound-Binomial distribution with
