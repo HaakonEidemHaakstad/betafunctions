@@ -18,30 +18,26 @@
 #' @return A list of moment types, each a list of moment orders.
 #' @export
 betamoments <- function(alpha, beta, l = 0, u = 1, types = c("raw", "central", "standardized"), orders = 4) {
-  moments <- base::list()
-  if (any(types == "raw")) {
-    for (i in 1:orders) {
-      moments[["raw"]][[i]] <- stats::integrate(function(x) { dBeta.4P(x, l, u, alpha, beta) * x^i },
-                                            lower = l, upper = u)$value
-    }
+  # Closed-form moments. With Y ~ Beta(alpha, beta) on [0, 1] and
+  # X = l + (u - l) * Y, E[Y^k] = prod_{j = 0}^{k - 1} (alpha + j) / (alpha + beta + j),
+  # and the moments of X follow from binomial expansions.
+  i <- seq_len(orders)
+  j <- seq_len(orders) - 1
+  ey <- c(1, cumprod((alpha + j) / (alpha + beta + j)))  # E[Y^0], ..., E[Y^orders]
+  width <- u - l
+  central_y <- function(r) {
+    k <- 0:r
+    sum(choose(r, k) * ey[k + 1] * (-ey[2])^(r - k))
   }
-  if (any(types == "central")) {
-    Mu <- stats::integrate(function(x) { dBeta.4P(x, l, u, alpha, beta) * x^1 }, lower = l, upper = u)$value
-    for (i in 1:orders) {
-      moments[["central"]][[i]] <- stats::integrate(function(x) { dBeta.4P(x, l, u, alpha, beta) * (x - Mu)^i },
-                                            lower = l, upper = u)$value
-    }
-  }
-  if (base::any(types == "standardized")) {
-    Mu <- stats::integrate(function(x) { dBeta.4P(x, l, u, alpha, beta) * x^1 }, lower = l, upper = u)$value
-    SigmaSquared <- stats::integrate(function(x) { dBeta.4P(x, l, u, alpha, beta) * (x - Mu)^2 },
-                       lower = l, upper = u)$value
-    for (i in 1:orders) {
-      moments[["standardized"]][[i]] <- stats::integrate(function(x) { dBeta.4P(x, l, u, alpha, beta) * ((x - Mu)^i / sqrt(SigmaSquared)^i) },
-                                            lower = l, upper = u)$value
-    }
-  }
-  return(moments)
+  .moment_list(
+    types,
+    raw = function() vapply(i, function(r) {
+      k <- 0:r
+      sum(choose(r, k) * l^(r - k) * width^k * ey[k + 1])
+    }, numeric(1)),
+    central = function() width^i * vapply(i, central_y, numeric(1)),
+    standardized = function() vapply(i, central_y, numeric(1)) / sqrt(central_y(2))^i
+  )
 }
 
 #' Compute Mode of Two- and Four-Parameter Beta Probability Density distribution.
@@ -62,12 +58,16 @@ betamoments <- function(alpha, beta, l = 0, u = 1, types = c("raw", "central", "
 #' betamode(alpha = 5, beta = 3, l = 25, u = 150)
 #' @export
 betamode <- function(alpha, beta, l = 0, u = 1) {
-  ((alpha - 1) / (alpha + beta - 2)) * (u - l) + l
+  if (any(alpha <= 1 | beta <= 1)) {
+    warning("The mode is only uniquely defined (as computed here) for alpha > 1 and beta > 1.")
+  }
+  (alpha - 1) / (alpha + beta - 2) * (u - l) + l
 }
 
 #' Compute Median of Two- and Four-Parameter Beta Probability Density distribution.
 #'
 #' @description Computes the median of a Beta distribution with specified shape- and location parameters.
+#' @note Versions prior to 1.9.1 returned the closed-form approximation \code{(alpha - 1/3) / (alpha + beta - 2/3)}, which is only accurate for \code{alpha, beta >= 1}. The exact median is now returned.
 #' @param alpha The alpha shape parameter.
 #' @param beta The beta shape parameter.
 #' @param l The first (lower) location parameter. Default set to \code{0}.
@@ -83,7 +83,7 @@ betamode <- function(alpha, beta, l = 0, u = 1) {
 #' betamedian(alpha = 5, beta = 3, l = 25, u = 150)
 #' @export
 betamedian <- function(alpha, beta, l = 0, u = 1) {
-  (alpha - (1/3)) / (alpha + beta - (2/3)) * (u - l) + l
+  stats::qbeta(0.5, alpha, beta) * (u - l) + l
 }
 
 #' Compute Moments of Binomial Probability Mass Functions.
@@ -109,26 +109,7 @@ betamedian <- function(alpha, beta, l = 0, u = 1) {
 #' @return A list of moment types, each a list of moment orders.
 #' @export
 binomialmoments <- function(n, p, types = c("raw", "central", "standardized"), orders = 4) {
-  moments <- base::list()
-  if (any(types == "raw")) {
-    for (i in 1:orders) {
-      moments[["raw"]][[i]] <- base::sum(stats::dbinom(0:n, n, p) * (0:n)^i)
-    }
-  }
-  if (any(types == "central")) {
-    Mu <- base::sum(stats::dbinom(0:n, n, p) * (0:n))
-    for (i in 1:orders) {
-      moments[["central"]][[i]] <- base::sum(stats::dbinom(0:n, n, p) * ((0:n - Mu)^i))
-    }
-  }
-  if (base::any(types == "standardized")) {
-    Mu <- base::sum(stats::dbinom(0:n, n, p) * (0:n))
-    SigmaSquared <- base::sum(stats::dbinom(0:n, n, p) * ((0:n - Mu)^2))
-    for (i in 1:orders) {
-      moments[["standardized"]][[i]] <- base::sum(stats::dbinom(0:n, n, p) * ((0:n - Mu)^i / sqrt(SigmaSquared)^i))
-    }
-  }
-  return(moments)
+  .pmf_moments(0:n, stats::dbinom(0:n, n, p), types, orders)
 }
 
 #' Compute Moments of Beta-Binomial Probability Mass Functions.
@@ -153,33 +134,10 @@ binomialmoments <- function(n, p, types = c("raw", "central", "standardized"), o
 #' @return A list of moment types, each a list of moment orders.
 #' @export
 betabinomialmoments <- function(N, l, u, alpha, beta, types = c("raw", "central", "standardized"), orders = 4) {
-  if (l < 0 | u > 1) {
-    base::warning("Beta-distribution location parameter(s) out of bounds (l < 0 or u > 1).")
+  if (l < 0 || u > 1) {
+    warning("Beta-distribution location parameter(s) out of bounds (l < 0 or u > 1).")
   }
-  weights <- NULL
-  for (i in 0:N) {
-    weights[i + 1] <- stats::integrate(function(x) { stats::dbinom(i, N, x) * dBeta.4P(x, l, u, alpha, beta) }, lower = 0, upper = 1)$value
-  }
-  moments <- base::list()
-  if (base::any(types == "raw")) {
-    for (i in 1:orders) {
-      moments[["raw"]][[i]] <- sum((0:N)^i * weights)
-    }
-  }
-  if (base::any(types == "central")) {
-    mu1 <- sum((0:N)^1 * weights)
-    for (i in 1:orders) {
-      moments[["central"]][[i]] <- sum((0:N - mu1)^i * weights)
-    }
-  }
-  if (base::any(types == "standardized")) {
-    mu1 <- base::sum((0:N)^1 * weights)
-    sigma2 <- base::sum((0:N - mu1)^2 * weights)
-    for (i in 1:orders) {
-      moments[["standardized"]][[i]] <- base::sum((0:N - mu1)^i * weights) / base::sqrt(sigma2)^i
-    }
-  }
-  return(moments)
+  .pmf_moments(0:N, .betabinom_pmf(0:N, N, l, u, alpha, beta), types, orders)
 }
 
 #' Compute Moments of Observed Value Distribution.
@@ -188,7 +146,7 @@ betabinomialmoments <- function(N, l, u, alpha, beta, types = c("raw", "central"
 #' @param x A vector of values, the distribution of which moments are to be calculated.
 #' @param type A character vector determining which moment-types are to be calculated. Permissible values are \code{"raw"}, \code{"central"}, and \code{"standardized"}.
 #' @param orders The number of moment-orders to be calculated for each of the moment-types.
-#' @param correct Logical. Whether to include bias correction in estimation of orders. Default is \code{TRUE}.
+#' @param correct Logical. Whether to include bias correction in estimation of orders. Default is \code{TRUE}. For central moments, \code{TRUE} divides the sums of deviations by \code{n - 1} rather than \code{n}. For standardized moments, \code{TRUE} scales deviations by the sample standard deviation (\code{sd()}, denominator \code{n - 1}) and \code{FALSE} by the population standard deviation (denominator \code{n}). (Prior to version 1.9.1, \code{correct} had no effect on the standardized moments.)
 #' @return A list of moment types, each a list of moment orders.
 #' @examples
 #' # Generate some fictional data. Say, 100 individuals take a test with a
@@ -203,34 +161,20 @@ betabinomialmoments <- function(N, l, u, alpha, beta, types = c("raw", "central"
 #' orders = 4, correct = TRUE)
 #' @export
 observedmoments <- function(x, type = c("raw", "central", "standardized"),  orders = 4, correct = TRUE) {
-  x <- stats::na.omit(x)
-  moments <- base::list()
-  if (base::any(type == "raw")) {
-    for (i in 1:orders) {
-      moments[["raw"]][[i]] <- base::sum(x^i)/base::length(x)
-    }
-  }
-  if (base::any(type == "central")) {
-    for (i in 1:orders) {
-      if (correct) {
-        moments[["central"]][[i]] <- base::sum((x - base::mean(x))^i)/(base::length(x) - 1)
-      }
-      else {
-        moments[["central"]][[i]] <- base::sum((x - base::mean(x))^i)/(base::length(x))
-      }
-    }
-  }
-  if (base::any(type == "standardized")) {
-    for (i in 1:orders) {
-      if (correct) {
-        moments[["standardized"]][[i]] <- 1 / base::length(x) * base::sum(((x - base::mean(x))^i)/sqrt(stats::var(x))^i)
-      }
-      else {
-        moments[["standardized"]][[i]] <- 1 / base::length(x) * base::sum(((x - base::mean(x))^i)/sqrt(stats::var(x))^i)
-      }
-    }
-  }
-  return(moments)
+  x <- x[!is.na(x)]
+  n <- length(x)
+  i <- seq_len(orders)
+  dev <- x - mean(x)
+  central_sums <- vapply(i, function(r) sum(dev^r), numeric(1))
+  # With correct = TRUE the deviations are scaled by the (n - 1) standard
+  # deviation; with correct = FALSE by the (n) population standard deviation.
+  scale <- if (correct) stats::sd(x) else sqrt(sum(dev^2) / n)
+  .moment_list(
+    type,
+    raw = function() vapply(i, function(r) sum(x^r) / n, numeric(1)),
+    central = function() central_sums / (if (correct) n - 1 else n),
+    standardized = function() central_sums / n / scale^i
+  )
 }
 
 
@@ -260,7 +204,12 @@ AMS <- function(mean, variance, l = 0, u = 1, sd = NULL) {
   if (!is.null(sd)) {
     variance <- sd^2
   }
-  return(((l - mean) * (l * (mean - u) - mean^2 + mean * u - variance)) / (variance * (l - u)))
+  # Method of moments on the standardized [0, 1] scale:
+  # alpha = m * (m * (1 - m) / s2 - 1), with m and s2 the standardized mean
+  # and variance.
+  m <- (mean - l) / (u - l)
+  s2 <- variance / (u - l)^2
+  m * (m * (1 - m) / s2 - 1)
 }
 
 #' Beta Shape-Parameter Given Location-Parameters, Mean, and Variance of a Four-Parameter Beta Probability Density Distribution.
@@ -294,7 +243,11 @@ BMS <- function(mean, variance, l = 0, u = 1, sd = NULL) {
   if (!is.null(sd)) {
     variance <- sd^2
   }
-  return(((mean - u) * (l * (u - mean) + mean^2 - mean * u + variance)) / (variance * (u - l)))
+  # Method of moments on the standardized [0, 1] scale:
+  # beta = (1 - m) * (m * (1 - m) / s2 - 1).
+  m <- (mean - l) / (u - l)
+  s2 <- variance / (u - l)^2
+  (1 - m) * (m * (1 - m) / s2 - 1)
 }
 
 #' Lower Location Parameter Given Shape Parameters, Mean, Variance, and Upper Location Parameter of a Four-Parameter Beta Probability Density Distribution.
@@ -304,7 +257,7 @@ BMS <- function(mean, variance, l = 0, u = 1, sd = NULL) {
 #' @param beta The beta (second) shape-parameter of the target Beta probability density distribution.
 #' @param mean The mean (first raw moment) of the target Standard Beta probability density distribution.
 #' @param variance The variance (second central moment) of the target Standard Beta probability density distribution.
-#' @param u The upper-bound of the Beta distribution. Default is NULL (i.e., does not take a specified u-parameter into account).
+#' @param u The upper-bound of the Beta distribution. Default is NULL (i.e., does not take a specified u-parameter into account). If supplied, \code{l} is determined by \code{alpha}, \code{beta}, \code{mean}, and \code{u} alone, and \code{variance} is not used.
 #' @param sd Optional alternative to specifying \code{var}. The standard deviation of the target Standard Beta probability density distribution.
 #' @return A numeric value representing the required value for the Beta lower location-parameter (\code{l}) in order to produce a Beta probability density distribution with the target moments and parameters.
 #' @examples
@@ -322,25 +275,28 @@ BMS <- function(mean, variance, l = 0, u = 1, sd = NULL) {
 #'
 #' # To find the l parameter necessary to produce a four-parameter Beta
 #' # distribution with the target mean, variance, and u, alpha, and beta
-#' # parameters using the LMSBAU() function:
+#' # parameters using the LABMSU() function:
 #' (l <- LABMSU(alpha = 5, beta = 3, mean = M, variance = S2, u = 0.75))
 #' curve(dBeta.4P(x, l, .75, 5, 3), add = TRUE, lwd = 2)
 #' @export
 LABMSU <- function(alpha = NULL, beta = NULL, u = NULL, mean = NULL, variance = NULL,  sd = NULL) {
-  l <- NULL
   if (!is.null(sd)) {
     variance <- sd^2
   }
-  if (is.null(l) & !is.null(alpha) & !is.null(beta) & !is.null(mean) & !is.null(u)) {
-    l <- (alpha * mean - alpha * u + beta * mean) / beta
+  if (is.null(alpha) || is.null(beta) || is.null(mean)) {
+    warning("Not enough information.")
+    return(NULL)
   }
-  if (is.null(l) & is.null(u) & !is.null(alpha) & !is.null(beta) & !is.null(mean) & !is.null(variance)) {
-    l <- mean - ((alpha * sqrt(variance * (alpha + beta + 1))) / sqrt(alpha * beta))
+  if (!is.null(u)) {
+    # The mean alone determines l once u and the shape parameters are known:
+    # mean = l + (u - l) * alpha / (alpha + beta).
+    return((alpha * mean - alpha * u + beta * mean) / beta)
   }
-  if (is.null(l) & !is.null(u) & !is.null(alpha) & !is.null(beta) & !is.null(mean) & !is.null(variance)) {
-    l <- (alpha * (mean - u)^3 + beta * variance * (beta * u - mean + u)) / (beta^2 * variance)
+  if (!is.null(variance)) {
+    return(mean - alpha * sqrt(variance * (alpha + beta + 1)) / sqrt(alpha * beta))
   }
-  return(l)
+  warning("Not enough information.")
+  NULL
 }
 
 #' Upper Location Parameter Given Shape Parameters, Mean, Variance, and Lower Location Parameter of a Four-Parameter Beta Probability Density Distribution.
@@ -350,7 +306,7 @@ LABMSU <- function(alpha = NULL, beta = NULL, u = NULL, mean = NULL, variance = 
 #' @param beta The beta shape-parameter of the target Beta probability density distribution.
 #' @param mean The mean (first raw moment) of the target Standard Beta probability density distribution.
 #' @param variance The variance (second central moment) of the target Standard Beta probability density distribution.
-#' @param l The lower-bound of the Beta distribution. Default is NULL (i.e., does not take a specified l-parameter into account).
+#' @param l The lower-bound of the Beta distribution. Default is NULL (i.e., does not take a specified l-parameter into account). If supplied, \code{u} is determined by \code{alpha}, \code{beta}, \code{mean}, and \code{l} alone, and \code{variance} is not used.
 #' @param sd Optional alternative to specifying \code{var}. The standard deviation of the target Standard Beta probability density distribution.
 #' @return A numeric value representing the required value for the Beta upper location-parameter (\code{u}) in order to produce a Beta probability density distribution with the target moments and parameters.
 #' @examples
@@ -366,30 +322,30 @@ LABMSU <- function(alpha = NULL, beta = NULL, u = NULL, mean = NULL, variance = 
 #' M <- mean(testdata)
 #' S2 <- var(testdata)
 #'
-#' # To find the l parameter necessary to produce a four-parameter Beta
-#' # distribution with the target mean, variance, and u, alpha, and beta
-#' # parameters using the LMSBAU() function:
+#' # To find the u parameter necessary to produce a four-parameter Beta
+#' # distribution with the target mean, variance, and l, alpha, and beta
+#' # parameters using the UABMSL() function:
 #' (u <- UABMSL(alpha = 5, beta = 3, mean = M, variance = S2, l = 0.25))
 #' curve(dBeta.4P(x, 0.25, u, 5, 3), add = TRUE, lwd = 2)
 #' @export
 UABMSL <- function(alpha = NULL, beta = NULL, mean = NULL, variance = NULL, l = NULL, sd = NULL) {
-  u <- NULL
   if (!is.null(sd)) {
     variance <- sd^2
   }
-  if (is.null(u) & !is.null(alpha) & !is.null(beta) & !is.null(mean) & !is.null(l)) {
-    u <- (beta * (mean - l) / alpha) + mean
-  }
-  if (is.null(u) & is.null(l) & !is.null(alpha) & !is.null(beta) & !is.null(mean) & !is.null(variance)) {
-    u <- mean + ((beta * sqrt(variance * (alpha + beta + 1))) / sqrt(alpha * beta))
-  }
-  if (is.null(u) & !is.null(l) & !is.null(alpha) & !is.null(beta) & !is.null(mean) & !is.null(variance)) {
-    u <- (alpha * variance * (alpha * l + l - mean) - beta * (l - mean)^3) / (alpha^2 * variance)
-  }
-  if (is.null(u)) {
+  if (is.null(alpha) || is.null(beta) || is.null(mean)) {
     warning("Not enough information.")
+    return(NULL)
   }
-  return(u)
+  if (!is.null(l)) {
+    # The mean alone determines u once l and the shape parameters are known:
+    # mean = l + (u - l) * alpha / (alpha + beta).
+    return(beta * (mean - l) / alpha + mean)
+  }
+  if (!is.null(variance)) {
+    return(mean + beta * sqrt(variance * (alpha + beta + 1)) / sqrt(alpha * beta))
+  }
+  warning("Not enough information.")
+  NULL
 }
 
 #' Probability of Some Specific Observation under the Beta Probability Density Distribution with Specific Location Parameters, Mean, and Variance.
@@ -416,12 +372,7 @@ UABMSL <- function(alpha = NULL, beta = NULL, mean = NULL, variance = NULL, l = 
 #' pBetaMS(q = 50, mean = 60, variance = 400, l = 0, u = 100)
 #' @export
 pBetaMS <- function(q, mean, variance = NULL, sd = NULL, lower.tail = TRUE, l = 0, u = 1) {
-  if ((!is.null(variance) & !is.null(sd))) {
-    if (variance != sd^2) {
-      warning("Nonequivalent values of variance and sd specified. Using variance.")
-    }
-  }
-  if (base::is.null(variance) & !base::is.null(sd)) variance <- sd^2
+  variance <- .resolve_variance(variance, sd)
   pBeta.4P(q, l, u, AMS(mean, variance, l, u), BMS(mean, variance, l, u), lower.tail = lower.tail)
 }
 
@@ -434,7 +385,7 @@ pBetaMS <- function(q, mean, variance = NULL, sd = NULL, lower.tail = TRUE, l = 
 #' @param sd The standard deviation of the target Standard Beta probability density distribution.
 #' @param l The lower-bound location parameter. Default set to 0 (the standard Beta distribution).
 #' @param u The upper-bound location parameter. Default set to 1 (the standard Beta distribution).
-#' @return A numeric value representing the required value for the beta Shape-parameter in order to produce a Standard Beta probability density distribution with the target mean and variance.
+#' @return The probability density at \code{x} under the Beta distribution with the specified mean, variance, and location parameters.
 #' @examples
 #' # To compute the density at a specific point (e.g., 0.5) along the Standard
 #' # (two-parameter) Probability Density Distribution with mean of 0.6 and variance of 0.04:
@@ -446,12 +397,7 @@ pBetaMS <- function(q, mean, variance = NULL, sd = NULL, lower.tail = TRUE, l = 
 #' dBetaMS(x = 50, mean = 60, variance = 400, l = 0, u = 100)
 #' @export
 dBetaMS <- function(x, mean, variance = NULL, sd = NULL, l = 0, u = 1) {
-  if ((!base::is.null(variance) & !base::is.null(sd))) {
-    if (variance != sd^2) {
-      warning("Nonequivalent values of variance and sd specified. Using variance.")
-    }
-  }
-  if (base::is.null(variance) & !base::is.null(sd)) variance <- sd^2
+  variance <- .resolve_variance(variance, sd)
   dBeta.4P(x, l, u, AMS(mean, variance, l, u), BMS(mean, variance, l, u))
 }
 
@@ -477,12 +423,7 @@ dBetaMS <- function(x, mean, variance = NULL, sd = NULL, l = 0, u = 1) {
 #' qBetaMS(p = 0.5, mean = 60, variance = 400, l = 0, u = 100)
 #' @export
 qBetaMS <- function(p, mean, variance = NULL, sd = NULL, lower.tail = TRUE, l = 0, u = 1) {
-  if ((!base::is.null(variance) & !base::is.null(sd))) {
-    if (variance != sd^2) {
-      warning("Nonequivalent values of variance and sd specified. Using var.")
-    }
-  }
-  if (base::is.null(variance) & !base::is.null(sd)) variance <- sd^2
+  variance <- .resolve_variance(variance, sd)
   qBeta.4P(p, l, u, AMS(mean, variance, l, u), BMS(mean, variance, l, u), lower.tail = lower.tail)
 }
 
@@ -502,17 +443,12 @@ qBetaMS <- function(p, mean, variance = NULL, sd = NULL, lower.tail = TRUE, l = 
 #' rBetaMS(n = 100, mean = 0.6, variance = 0.04)
 #'
 #' # To draw a random sample of 100 values from a Four-Parameter Beta
-#* # distribution with a mean of 60 and variance = 400, and a lower-bound of
+#' # distribution with a mean of 60 and variance = 400, and a lower-bound of
 #' # 0 and an upper-bound of 100:
 #' rBetaMS(n = 100, mean = 60, variance = 400, l = 0, u = 100)
 #' @export
 rBetaMS <- function(n, mean, variance = NULL, sd = NULL, l = 0, u = 1) {
-  if ((!base::is.null(variance) & !base::is.null(sd))) {
-    if (variance != sd^2) {
-      warning("Nonequivalent values of var and sd specified. Using var.")
-    }
-  }
-  if (is.null(variance) & !is.null(sd)) variance <- sd^2
+  variance <- .resolve_variance(variance, sd)
   rBeta.4P(n, l, u, AMS(mean, variance, l, u), BMS(mean, variance, l, u))
 }
 
@@ -537,16 +473,10 @@ rBetaMS <- function(n, mean, variance = NULL, sd = NULL, l = 0, u = 1) {
 #' polygon(coords)
 #' @export
 Beta.gfx.poly.pdf <- function(from, to, by, alpha, beta, l = 0, u = 1) {
-  x <- base::c(from, base::seq(from, to, by), to)
-  for (i in 1:base::length(x)) {
-    if (i == 1) y <- base::vector(length = base::length(x))
-    if (i == 1 | i == base::length(x)) {
-      y[i] <- 0
-    } else {
-      y[i] <- dBeta.4P(x[i], l, u, alpha, beta)
-    }
-  }
-  return(base::cbind(x, y))
+  inner <- seq(from, to, by)
+  x <- c(from, inner, to)
+  y <- c(0, dBeta.4P(inner, l, u, alpha, beta), 0)
+  cbind(x, y)
 }
 
 #' Coordinate Generation for Marking an Area Under the Curve for the Beta Quantile Density Distribution.
@@ -570,16 +500,10 @@ Beta.gfx.poly.pdf <- function(from, to, by, alpha, beta, l = 0, u = 1) {
 #' polygon(coords)
 #' @export
 Beta.gfx.poly.qdf <- function(from, to, by, alpha, beta, l = 0, u = 1) {
-  x <- base::c(from, base::seq(from, to, by), to)
-  for (i in 1:base::length(x)) {
-    if (i == 1) y <- base::vector(length = base::length(x))
-    if (i == 1 | i == base::length(x)) {
-      y[i] <- l
-    } else {
-      y[i] <- qBeta.4P(x[i], l, u, alpha, beta)
-    }
-  }
-  return(base::cbind(x, y))
+  inner <- seq(from, to, by)
+  x <- c(from, inner, to)
+  y <- c(l, qBeta.4P(inner, l, u, alpha, beta), l)
+  cbind(x, y)
 }
 
 #' Coordinate Generation for Marking an Area Under the Curve for the Beta Cumulative Probability Density Distribution.
@@ -603,16 +527,10 @@ Beta.gfx.poly.qdf <- function(from, to, by, alpha, beta, l = 0, u = 1) {
 #' polygon(coords)
 #' @export
 Beta.gfx.poly.cdf <- function(from, to, by, alpha, beta, l = 0, u = 1) {
-  x <- base::c(from, seq(from, to, by), to)
-  for (i in 1:base::length(x)) {
-    if (i == 1) y <- base::vector(length = base::length(x))
-    if (i == 1 | i == base::length(x)) {
-      y[i] <- 0
-    } else {
-      y[i] <- pBeta.4P(x[i], l, u, alpha, beta)
-    }
-  }
-  return(base::cbind(x, y))
+  inner <- seq(from, to, by)
+  x <- c(from, inner, to)
+  y <- c(0, pBeta.4P(inner, l, u, alpha, beta), 0)
+  cbind(x, y)
 }
 
 #' Most Likely True Alpha Value Given Observed Outcome.
@@ -630,13 +548,12 @@ Beta.gfx.poly.cdf <- function(from, to, by, alpha, beta, l = 0, u = 1) {
 #' MLA(a = 10, b = 8)
 #' @export
 MLA <- function(alpha, beta, x = NULL, n = NULL) {
-  if (base::is.null(x) | base::is.null(n)) {
+  if (is.null(x) || is.null(n)) {
+    # Use the mean of the fitted distribution as the observed proportion.
     n <- alpha + beta
-    A <- (alpha*(n - 2) + n) / n
-    A
-  } else {
-    x*(n - 2) + 1
+    x <- alpha / n
   }
+  x * (n - 2) + 1
 }
 
 #' Most Likely True Beta Value Given Observed Outcome.
@@ -654,14 +571,11 @@ MLA <- function(alpha, beta, x = NULL, n = NULL) {
 #' @return The Beta shape-parameter value for the Standard Beta probability density distribution where the observed mean is the expected mode.
 #' @export
 MLB <- function(alpha, beta, x = NULL, n = NULL) {
-  if (base::is.null(x) | base::is.null(n)) {
+  if (is.null(x) || is.null(n)) {
     n <- alpha + beta
-    A <- (alpha*(n - 2) + n) / n
-    B <- n - A
-    B
-  } else {
-    n - (x*(n - 2) + 1)
+    x <- alpha / n
   }
+  n - (x * (n - 2) + 1)
 }
 
 #' Most Likely Mean of the Standard Beta Probability Density Distribution, Given that the Observation is Considered the Most Likely Observation of the Standard Beta Probability Density Distribution (i.e., the mode).
@@ -679,14 +593,11 @@ MLB <- function(alpha, beta, x = NULL, n = NULL) {
 #' @return The expected mean of the Standard Beta probability density distribution, for which the observed mean is the most likely value.
 #' @export
 MLM <- function(alpha, beta, x = NULL, n = NULL) {
-  if (base::is.null(x) | base::is.null(n)) {
+  if (is.null(x) || is.null(n)) {
     n <- alpha + beta
-    A <- (alpha*(n - 2) + n) / n
-    B <- (n - A)
-    A / (A + B)
-  } else {
-    (x*(n - 2) + 1) / n
+    x <- alpha / n
   }
+  (x * (n - 2) + 1) / n
 }
 
 #' Probability Density under the Four-Parameter Beta Probability Density Distribution.
@@ -706,15 +617,7 @@ MLM <- function(alpha, beta, x = NULL, n = NULL) {
 #' dBeta.4P(x = 0.5, l = 0.25, u = 0.75, alpha = 5, beta = 3)
 #' @export
 dBeta.4P <- function(x, l, u, alpha, beta) {
- bfunc <- base::beta(alpha, beta)
-  base::sapply(x, function(x) {
-    if (x < l | x > u) {
-      0
-    } else {
-      (1 / bfunc) * ((x - l)^(alpha - 1) * (u - x)^(beta - 1)) / (u - l)^(alpha + beta -1)
-    }
-    }
-  )
+  stats::dbeta((x - l) / (u - l), alpha, beta) / (u - l)
 }
 
 #' Random Number Generation under the Beta-Binomial Probability Mass Distribution.
@@ -734,8 +637,7 @@ dBeta.4P <- function(x, l, u, alpha, beta) {
 #' rBetaBinom(n = 50, N = 100, l = 0.25, u = 0.95, alpha = 5, beta = 3)
 #' @export
 rBetaBinom <- function(n, N, l, u, alpha, beta) {
-  weights <- sapply(0:N, function(x) { stats::integrate(function(y) { stats::dbinom(x, N, y) * dBeta.4P(y, l, u, alpha, beta) }, lower = 0, upper = 1)$value})
-  base::sample(0:N, size = n, prob = weights, replace = TRUE)
+  sample(0:N, size = n, prob = .betabinom_pmf(0:N, N, l, u, alpha, beta), replace = TRUE)
 }
 
 #' Probability Mass under the Beta-Binomial Probability-Mass Distribution.
@@ -757,7 +659,7 @@ rBetaBinom <- function(n, N, l, u, alpha, beta) {
 #' dBetaBinom(x = 50, N = 100, l = 0.25, u = 0.75, alpha = 5, beta = 3)
 #' @export
 dBetaBinom <- function(x, N, l, u, alpha, beta) {
-  sapply(x, function(x) { stats::integrate(function(y) { stats::dbinom(x, N, y) * dBeta.4P(y, l, u, alpha, beta) }, lower = 0, upper = 1)$value})
+  .betabinom_pmf(x, N, l, u, alpha, beta)
 }
 
 #' Cumulative Probability Function under the Beta-Binomial Probability Distribution.
@@ -769,8 +671,8 @@ dBetaBinom <- function(x, N, l, u, alpha, beta) {
 #' @param u The second (upper) location parameter.
 #' @param alpha The first shape parameter.
 #' @param beta The second shape parameter.
-#' @param lower.tail Whether the proportion to be calculated is to be under the lower or upper tail. Default is \code{TRUE} (lower tail).
-#' @return A vector of proportions of observations falling under specified quantiles under the four-parameter Beta distribution.
+#' @param lower.tail Logical. If \code{TRUE} (default), probabilities are P[X < q], otherwise P[X >= q]. Note that this differs from base-R \code{pbinom()}, which gives P[X <= q].
+#' @return A vector of proportions of observations falling under specified quantiles under the Beta-Binomial distribution.
 #' @examples
 #' # Assume some variable follows a Beta-Binomial distribution with number of
 #' # trials = 50, and probabilities of successful trials are drawn from a four-
@@ -780,11 +682,7 @@ dBetaBinom <- function(x, N, l, u, alpha, beta) {
 #' pBetaBinom(q = 25, N = 50, l = .25, u = .75, alpha = 5, beta = 3)
 #' @export
 pBetaBinom <- function(q, N, l, u, alpha, beta, lower.tail = TRUE) {
-  if (lower.tail) {
-    1 - sapply(q, function(x) { sapply(x, function(x) { sum(dBetaBinom(x:N, N, l, u, alpha, beta)) })})
-  } else {
-    sapply(q, function(x) { sapply(x, function(x) { sum(dBetaBinom(x:N, N, l, u, alpha, beta)) })})
-  }
+  .discrete_tail(q, .betabinom_pmf(0:N, N, l, u, alpha, beta), lower.tail = lower.tail)
 }
 
 #' Random Number Generation under the Four-Parameter Beta Probability Density Distribution.
@@ -826,16 +724,7 @@ rBeta.4P <- function(n, l, u, alpha, beta) {
 #' pBeta.4P(q = 0.5, l = 0.25, u = 0.75, alpha = 5, beta = 3)
 #' @export
 pBeta.4P <- function(q, l, u, alpha, beta, lower.tail = TRUE) {
-  base::sapply(q, function(x) {
-    num <- stats::integrate(function(y) { dBeta.4P(y, l, u, alpha, beta) }, lower = l, upper = x)$value
-    den <- stats::integrate(function(y) { dBeta.4P(y, l, u, alpha, beta) }, lower = l, upper = u)$value
-    if (lower.tail) {
-      num/den
-      } else {
-        1 - num/den
-      }
-    }
-  )
+  stats::pbeta((q - l) / (u - l), alpha, beta, lower.tail = lower.tail)
 }
 
 #' Quantile Given Probability Under the Four-Parameter Beta Distribution.
@@ -846,7 +735,8 @@ pBeta.4P <- function(q, l, u, alpha, beta, lower.tail = TRUE) {
 #' @param u The second (upper) location parameter.
 #' @param alpha The first shape parameter.
 #' @param beta The second shape parameter.
-#' @param lower.tail Logical. Whether the quantile(s) to be calculated is to be under the lower or upper tail. Default is \code{TRUE} (lower tail).
+#' @param lower.tail Logical. If \code{TRUE} (default), returns \code{x} such that P[X <= x] = \code{p}; otherwise \code{x} such that P[X > x] = \code{p}.
+#' @note Prior to version 1.9.1, \code{lower.tail = FALSE} returned \code{1 - qbeta(p, alpha, beta)} on the [l, u] scale, which is only correct when \code{alpha == beta}.
 #' @return A vector of quantiles for specified probabilities or proportions of observations under the four-parameter Beta distribution.
 #' @examples
 #' # Assume some variable follows a four-parameter Beta distribution with
@@ -856,11 +746,7 @@ pBeta.4P <- function(q, l, u, alpha, beta, lower.tail = TRUE) {
 #' qBeta.4P(p = 0.5, l = 0.25, u = 0.75, alpha = 5, beta = 3)
 #' @export
 qBeta.4P <- function(p, l, u, alpha, beta, lower.tail = TRUE) {
-  if (lower.tail) {
-    stats::qbeta(p, alpha, beta) * (u - l) + l
-  } else {
-    (1 - stats::qbeta(p, alpha, beta)) * (u - l) + l
-  }
+  stats::qbeta(p, alpha, beta, lower.tail = lower.tail) * (u - l) + l
 }
 
 #' Method of Moment Estimates of Shape- and Location Parameters of the Four-Parameter Beta Distribution.
@@ -887,29 +773,36 @@ qBeta.4P <- function(p, l, u, alpha, beta, lower.tail = TRUE) {
 #' curve(dBeta.4P(x, params.4p$l, params.4p$u, params.4p$alpha, params.4p$beta), add = TRUE)
 #' @export
 Beta.4p.fit <- function(scores, mean = NULL, variance = NULL, skewness = NULL, kurtosis = NULL) {
-  if (!base::any(base::is.null(c(mean, variance, skewness, kurtosis)))) {
+  if (!is.null(mean) && !is.null(variance) && !is.null(skewness) && !is.null(kurtosis)) {
     m1 <- mean
     s2 <- variance
     g3 <- skewness
     g4 <- kurtosis
   } else {
+    if (missing(scores) || is.null(scores)) {
+      stop("Supply either `scores`, or all of `mean`, `variance`, `skewness`, and `kurtosis`.")
+    }
     m <- observedmoments(scores)
     m1 <- m$raw[[1]]
     s2 <- m$central[[2]]
     g3 <- m$standardized[[3]]
     g4 <- m$standardized[[4]]
   }
+  # Hanson (1991), equations for the four-parameter Beta method of moments.
   r <- 6 * (g4 - g3^2 - 1) / (6 + 3 * g3^2 - 2 * g4)
-    if (g3 < 0) {
-      a <- r / 2 * (1 + base::sqrt(1 - ((24 * (r + 1)) / ((r + 2) * (r + 3) * g4 - 3 * (r - 6) * (r + 1)))))
-      b <- r / 2 * (1 - base::sqrt(1 - ((24 * (r + 1)) / ((r + 2) * (r + 3) * g4 - 3 * (r - 6) * (r + 1)))))
-    } else {
-      b <- r / 2 * (1 + base::sqrt(1 - ((24 * (r + 1)) / ((r + 2) * (r + 3) * g4 - 3 * (r - 6) * (r + 1)))))
-      a <- r / 2 * (1 - base::sqrt(1 - ((24 * (r + 1)) / ((r + 2) * (r + 3) * g4 - 3 * (r - 6) * (r + 1)))))
-    }
-    l <- m1 - ((a * base::sqrt(s2 * (a + b + 1))) / base::sqrt(a * b))
-    u <- m1 + ((b * base::sqrt(s2 * (a + b + 1))) / base::sqrt(a * b))
-  return(base::list("alpha" = a, "beta" = b, "l" = l, "u" = u))
+  root <- sqrt(1 - 24 * (r + 1) / ((r + 2) * (r + 3) * g4 - 3 * (r - 6) * (r + 1)))
+  larger <- r / 2 * (1 + root)
+  smaller <- r / 2 * (1 - root)
+  # Negative skew means alpha > beta.
+  if (g3 < 0) {
+    a <- larger
+    b <- smaller
+  } else {
+    a <- smaller
+    b <- larger
+  }
+  spread <- sqrt(s2 * (a + b + 1)) / sqrt(a * b)
+  list("alpha" = a, "beta" = b, "l" = m1 - a * spread, "u" = m1 + b * spread)
 }
 
 #' Method of Moment Estimates of Shape-Parameters of the Two-Parameter (Standard) Beta Distribution.
@@ -935,18 +828,14 @@ Beta.4p.fit <- function(scores, mean = NULL, variance = NULL, skewness = NULL, k
 #' @export
 Beta.2p.fit <- function(scores = NULL, mean = NULL, variance = NULL, l = 0, u = 1) {
   if (!is.null(scores)) {
-    if (base::max(scores) > u | base::min(scores) < l) {
-      warning(paste("Input values outside the range of the specified location parameters of the Beta distribution (i.e., there are values falling outside the [", l, ", ", u, "] interval).", sep = ""))
+    if (max(scores) > u || min(scores) < l) {
+      warning("Input values outside the range of the specified location parameters of the Beta distribution (i.e., there are values falling outside the [",
+              l, ", ", u, "] interval).")
     }
-    m1 <- base::mean(scores)
-    s2 <- stats::var(scores)
-  } else {
-    m1 <- mean
-    s2 <- variance
+    mean <- base::mean(scores)
+    variance <- stats::var(scores)
   }
-  a <- AMS(m1, s2, l, u)
-  b <- BMS(m1, s2, l, u)
-  return(base::list("alpha" = a, "beta" = b, "l" = l, "u" = u))
+  list("alpha" = AMS(mean, variance, l, u), "beta" = BMS(mean, variance, l, u), "l" = l, "u" = u)
 }
 
 #' An implementation of the Beta-density Compound Cumulative Binomial Distribution.
@@ -985,11 +874,7 @@ Beta.2p.fit <- function(scores = NULL, mean = NULL, variance = NULL, l = 0, u = 
 #' lower = 0.25, upper = 0.5)
 #' @export
 dBeta.pBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
-  if (!lower.tail) {
-    dBeta.4P(x, l, u, alpha, beta) * (1 - stats::pbinom(round(n * c) - 1, round(n), x, lower.tail = TRUE))
-  } else {
-    dBeta.4P(x, l, u, alpha, beta) * stats::pbinom(round(n * c) - 1, round(n), x, lower.tail = TRUE)
-  }
+  dBeta.4P(x, l, u, alpha, beta) * stats::pbinom(round(n * c) - 1, round(n), x, lower.tail = lower.tail)
 }
 
 #' An implementation of a Beta-density Compound Cumulative Gamma-Binomial Distribution.
@@ -1028,11 +913,13 @@ dBeta.pBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
 #' integrate(function(x) { dBeta.pGammaBinom(x, 0.25, 0.75, 5, 3, 10, 0.5) },
 #' lower = 0.25, upper = 0.5)
 dBeta.pGammaBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
-  if (!lower.tail) {
-    dBeta.4P(x, l, u, alpha, beta) * pGammaBinom(n * c, n, x, FALSE)
-  } else {
-    dBeta.4P(x, l, u, alpha, beta) * pGammaBinom(n * c, n, x, lower.tail = TRUE)
-  }
+  density <- dBeta.4P(x, l, u, alpha, beta)
+  out <- density
+  # pGammaBinom() integrates numerically, so only evaluate it where the
+  # density is non-zero.
+  inside <- !is.na(density) & density != 0
+  out[inside] <- density[inside] * pGammaBinom(n * c, n, x[inside], lower.tail = lower.tail)
+  out
 }
 
 #' An implementation of a Beta-density Compound Cumulative-Beta Distribution.
@@ -1070,11 +957,7 @@ dBeta.pGammaBinom <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
 #' lower = 0.25, upper = 0.5)
 #' @export
 dBeta.pBeta <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
-  if(!lower.tail) {
-    dBeta.4P(x, l, u, alpha, beta) * stats::pbeta(c, x * n, (1 - x) * n, lower.tail = FALSE)
-  } else {
-    dBeta.4P(x, l, u, alpha, beta) * (1 - stats::pbeta(c, x * n, (1 - x) * n, lower.tail = FALSE))
-  }
+  dBeta.4P(x, l, u, alpha, beta) * stats::pbeta(c, x * n, (1 - x) * n, lower.tail = lower.tail)
 }
 
 #' Gamma-extended Binomial coefficient (choose function).
@@ -1092,7 +975,16 @@ dBeta.pBeta <- function(x, l, u, alpha, beta, n, c, lower.tail = FALSE) {
 #' gchoose(10.5, 7.5)
 #' @export
 gchoose <- function(n, k) {
-  gamma(n + 1) / (gamma(k + 1) * gamma(n - k + 1))
+  len <- max(length(n), length(k))
+  a <- rep_len(n + 1, len)
+  b <- rep_len(k + 1, len)
+  c <- rep_len(n - k + 1, len)
+  out <- gamma(a) / (gamma(b) * gamma(c))
+  # gamma() overflows for arguments above ~171, giving Inf / Inf = NaN. Where
+  # that happens and all arguments are positive, compute on the log scale.
+  overflow <- !is.na(a) & !is.na(b) & !is.na(c) & pmax(a, b, c) > 170 & a > 0 & b > 0 & c > 0
+  out[overflow] <- exp(lgamma(a[overflow]) - lgamma(b[overflow]) - lgamma(c[overflow]))
+  out
 }
 
 #' Cumulative probability density function under the Gamma-extended Binomial distribution.
@@ -1100,7 +992,7 @@ gchoose <- function(n, k) {
 #' @description Extends the cumulative Binomial probability mass function to positive non-integers, effectively turning the mass-function into a density-function.
 #' @param q Vector of quantiles.
 #' @param size Number of "trials" (zero or more). Need not be integer.
-#' @param prob Probability of "success" on each "trial". Need not be integer.
+#' @param prob Probability of "success" on each "trial". Need not be integer. \code{q} and \code{prob} are recycled to a common length.
 #' @param lower.tail Logical. If TRUE (default), probabilities are P[X<x], otherwise, P[X >= x]. Note that this differs from base-R \code{binom()} functions.
 #' @references Loeb, D. E. (1992). A generalization of the binomial coefficients. Discrete Mathematics, 105(1-3).
 #' @examples
@@ -1114,15 +1006,28 @@ gchoose <- function(n, k) {
 #' pGammaBinom(q = 7.5, size = 10.5, prob = 0.75, lower.tail = FALSE)
 #' @export
 pGammaBinom <- function(q, size, prob, lower.tail = TRUE) {
-  base::sapply(prob, function(x) {
-    num <- stats::integrate(function(y) { dGammaBinom(y, size, x) }, lower = 0, upper = q)$value
-    den <- stats::integrate(function(y) { dGammaBinom(y, size, x) }, lower = 0, upper = size)$value
+  n <- max(length(q), length(prob))
+  q <- rep_len(q, n)
+  prob <- rep_len(prob, n)
+  vapply(seq_len(n), function(i) .gammabinom_cdf(size, prob[i])(q[i], lower.tail), numeric(1))
+}
+
+# Returns a function computing the cumulative probability of the
+# Gamma-extended Binomial distribution, with the normalizing integral computed
+# once.
+.gammabinom_cdf <- function(size, prob) {
+  kernel <- function(y) dGammaBinom(y, size, prob)
+  total <- stats::integrate(kernel, lower = 0, upper = size)$value
+  function(q, lower.tail = TRUE) {
+    q <- min(max(q, 0), size)
     if (lower.tail) {
-      num/den
+      if (q == 0) return(0)
+      stats::integrate(kernel, lower = 0, upper = q)$value / total
     } else {
-      1 - num/den
+      if (q == size) return(0)
+      stats::integrate(kernel, lower = q, upper = size)$value / total
     }
-  })
+  }
 }
 
 #' Probability density function under the Gamma-extended Binomial distribution.
@@ -1133,7 +1038,7 @@ pGammaBinom <- function(q, size, prob, lower.tail = TRUE) {
 #' @param nc Whether to include a normalizing constant making sure that the sum of the distribution's density is 1.
 #' @references Loeb, D. E. (1992). A generalization of the binomial coefficients. Discrete Mathematics, 105(1-3).
 #' @examples
-#' #' # Assume some variable follows a Gamma-Binomial distribution with
+#' # Assume some variable follows a Gamma-Binomial distribution with
 #' # "number of trials" = 10.5 and probability of "success" for each "trial"
 #' # = 0.75, to compute the probability density to attain a "number of success"
 #' # at a specific point (e.g., 7.5 "successes"):
@@ -1145,23 +1050,28 @@ pGammaBinom <- function(q, size, prob, lower.tail = TRUE) {
 #' dGammaBinom(x = 7, size = 10, prob = 0.75, nc = TRUE) == dbinom(7, 10, 0.75)
 #' @export
 dGammaBinom <- function(x, size, prob, nc = FALSE) {
+  kernel <- function(y) {
+    len <- max(length(y), length(prob))
+    y <- rep_len(y, len)
+    pr <- rep_len(prob, len)
+    out <- numeric(len)
+    out[is.na(y) | is.na(pr)] <- NA
+    inside <- !is.na(out) & y >= 0 & y <= size
+    out[inside] <- gchoose(size, y[inside]) * pr[inside]^y[inside] * (1 - pr[inside])^(size - y[inside])
+    # For large `size` the coefficient overflows while the powers underflow;
+    # compute those on the log scale instead.
+    if (size > 170) {
+      interior <- inside & pr > 0 & pr < 1
+      yi <- y[interior]
+      out[interior] <- exp(lgamma(size + 1) - lgamma(yi + 1) - lgamma(size - yi + 1) +
+                             yi * log(pr[interior]) + (size - yi) * log1p(-pr[interior]))
+    }
+    out
+  }
   if (nc) {
-    den <- stats::integrate(function(z) { (gchoose(size, z) * prob^z * (1 - prob)^(size - z)) }, lower = 0, upper = size)$value
-    base::sapply(x, function(y) {
-      if (y < 0 | y > size) {
-        0
-      } else {
-        (gchoose(size, y) * prob^y * (1 - prob)^(size - y)) / den
-      }
-    })
+    kernel(x) / stats::integrate(kernel, lower = 0, upper = size)$value
   } else {
-    base::sapply(x, function(y) {
-      if (y < 0 | y > size) {
-        0
-      } else {
-        (gchoose(size, y) * prob^y * (1 - prob)^(size - y))
-      }
-    })
+    kernel(x)
   }
 }
 
@@ -1170,7 +1080,7 @@ dGammaBinom <- function(x, size, prob, nc = FALSE) {
 #' @param n Number of observations.
 #' @param size Number of "trials" (zero or more). Need not be integer.
 #' @param prob Probability of "success" on each "trial". Need not be integer.
-#' @param precision The precision with which the quantile is to be calculated. Default is 1e-4 (i.e., search terminates when there is no registered change in estimate at the fourth decimal). Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.
+#' @param precision The convergence tolerance used by \code{qGammaBinom()} when computing the quantile. Default is 1e-4. Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.
 #' @note Calls \code{qGammaBinom()}, which makes the random draw slower than what one might be used to (since \code{qGammaBinom()} calls \code{pGammaBinom()} and employs a search-algorithm to find the appropriate value down to a specifiable level of precision).
 #' @examples
 #' # Assume some variable follows a Gamma-Binomial distribution with
@@ -1188,8 +1098,8 @@ rGammaBinom <- function(n, size, prob, precision = 1e-4) {
 #' @param size Number of "trials" (zero or more, including positive non-integers).
 #' @param prob Probability of success on each "trial".
 #' @param lower.tail Logical. If TRUE (default), probabilities are P[X < x], otherwise P[X > x].
-#' @param precision The precision with which the quantile is to be calculated. Default is 1e-7 (i.e., search terminates when there is no registered change in estimate at the seventh decimal). Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.
-#' @note This function uses a bisection search-algorithm to find the number of successes corresponding to the specified quantile(s). This algorithm is inefficient with respect to the number of iterations required to converge on the solution. More efficient algorithms might be added in later versions.
+#' @param precision The convergence tolerance of the root-finding algorithm (passed to \code{stats::uniroot()} as \code{tol}). Default is 1e-7. Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.
+#' @note This function uses root-finding (\code{stats::uniroot()}) on the cumulative distribution function to find the number of successes corresponding to the specified quantile(s).
 #' @references Loeb, D. E. (1992). A generalization of the binomial coefficients. Discrete Mathematics, 105(1-3).
 #' @examples
 #' # For a Gamma-extended Binomial distribution with number of trials = 10 and
@@ -1203,40 +1113,19 @@ rGammaBinom <- function(n, size, prob, precision = 1e-4) {
 #' qGammaBinom(p = 0.25, size = 10, prob = 0.75, lower.tail = FALSE)
 #' @export
 qGammaBinom <- function(p, size, prob, lower.tail = TRUE, precision = 1e-7) {
-  base::sapply(p, function(c) {
-    if (c == 0 | c == 1) {
-      if (c == 0) {
-        x <- 0
-      } else {
-        x <- size
-      }
-      x
-    } else {
-      x <- size / 2
-      y <- pGammaBinom(x, size, prob, lower.tail)
-      a <- size
-      b <- x
-      while(base::abs(y - c) > precision) {
-        if (y < c) {
-          if (lower.tail) {
-            x <- x + abs((a - b)) / 2
-          } else {
-            x <- x - abs((a - b)) / 2
-          }
-        } else {
-          if (lower.tail) {
-            x <- x - base::abs((a - b)) / 2
-          } else {
-            x <- x + base::abs((a - b)) / 2
-          }
-        }
-        a <- b
-        b <- x
-        y <- pGammaBinom(x, size, prob, lower.tail)
-      }
+  cdf <- .gammabinom_cdf(size, prob)
+  vapply(p, function(target) {
+    if (is.na(target) || target < 0 || target > 1) {
+      warning("Probabilities must be within [0, 1]; returning NaN.")
+      return(NaN)
     }
-    x
-    })
+    # The quantile at probability 0 or 1 is an end-point of the support; which
+    # end depends on the tail.
+    if (target == 0) return(if (lower.tail) 0 else size)
+    if (target == 1) return(if (lower.tail) size else 0)
+    stats::uniroot(function(x) cdf(x, lower.tail) - target,
+                   lower = 0, upper = size, tol = precision)$root
+  }, numeric(1))
 }
 
 
@@ -1255,9 +1144,8 @@ qGammaBinom <- function(p, size, prob, lower.tail = TRUE, precision = 1e-7) {
 #' # (e.g., 50):
 #' dcBinom(x = 50, N = 100, k = 1, p = .5)
 dcBinom <- function(x, N, k, p) {
-  sapply(x, function(x) {
-    stats::dbinom(x, N, p) - k*p*(1 - p)*(stats::dbinom(x, N - 2, p) - 2*stats::dbinom(x - 1, N - 2, p) + stats::dbinom(x - 2, N - 2, p))
-  })
+  stats::dbinom(x, N, p) -
+    k * p * (1 - p) * (stats::dbinom(x, N - 2, p) - 2 * stats::dbinom(x - 1, N - 2, p) + stats::dbinom(x - 2, N - 2, p))
 }
 
 #' Cumulative Probability Mass function for Lord's Two-Term Approximation to the Compound Binomial Distribution.
@@ -1268,6 +1156,7 @@ dcBinom <- function(x, N, k, p) {
 #' @param k Lord's k (see documentation for the \code{Lords.k()} function).
 #' @param p Probability of success for each trial.
 #' @param lower.tail Logical. If TRUE (default), probabilities are P[X<x], otherwise, P[X >= x]. Note that this differs from base-R \code{binom()} functions.
+#' @return A vector of cumulative probabilities.
 #' @export
 #' @examples
 #' # Assume some variable follows a compound Binomial distribution with 100
@@ -1276,19 +1165,7 @@ dcBinom <- function(x, N, k, p) {
 #' # (e.g., 50):
 #' pcBinom(q = 50, N = 100, k = 1, p = .5)
 pcBinom <- function(q, N, k, p, lower.tail = TRUE) {
-  if (lower.tail) {
-    1 - sapply(q, function(x) {
-      sapply(x, function(x) {
-        sum(dcBinom(x:N, N, k, p))
-      })
-    })
-  } else {
-    sapply(q, function(x) {
-      sapply(x, function(x) {
-        sum(dcBinom(x:N, N, k, p))
-      })
-    })
-  }
+  .pcbinom_tail(q, N, k, p, lower.tail = lower.tail)
 }
 
 #' Random Number Generation under Lord's Two-Term Approximation to the Compound Binomial Distribution.
@@ -1298,7 +1175,7 @@ pcBinom <- function(q, N, k, p, lower.tail = TRUE) {
 #' @param N Number of trials.
 #' @param k Lord's k (see documentation for the \code{Lords.k()} function).
 #' @param p Probability of success for each trial.
-#' @note For larger values of \code{k}, the distribution can yield negative probabilities. This function handles such occurrences by adding the absolute value of the minimum probability to all observations if there are any negative probabilities and then normalize the distribution so that the total density is equal to 1.
+#' @note For larger values of \code{k}, the distribution can yield negative probabilities. This function handles such occurrences by adding the absolute value of the minimum probability to all observations if there are any negative probabilities and then normalize the distribution so that the total density is equal to 1. If \code{p} is a vector it is recycled to length \code{n}, and one value is drawn per element.
 #' @export
 #' @examples
 #' # To draw a sample of 50 values from a Compound-Binomial distribution with
@@ -1311,33 +1188,22 @@ pcBinom <- function(q, N, k, p, lower.tail = TRUE) {
 #' rcBinom(n = 50, N = 100, k = 1, p = runif(50))
 rcBinom <- function(n, N, k, p) {
   if (length(p) == 1) {
-    weights <- dcBinom(0:N, N, k, p)
+    return(sample(0:N, size = n, prob = .fix_weights(dcBinom(0:N, N, k, p)), replace = TRUE))
+  }
+  p <- rep_len(p, n)
+  negative <- FALSE
+  draws <- vapply(p, function(pi) {
+    weights <- dcBinom(0:N, N, k, pi)
     if (any(weights < 0)) {
-      warning("Density function returned negative probabilities.")
+      negative <<- TRUE
       weights <- weights + abs(min(weights))
     }
-    if (sum(weights) != 1) {
-      warning("Sum of probabilities did not equal 1.")
-      weights <- weights/sum(weights)
-    }
-    sample(0:N, size = n, prob = weights, replace = TRUE)
-  } else {
-    if (length(p) < n) {
-      p <- as.vector(matrix(p, nrow = n, ncol = 1))
-    }
-    sapply(p, function(x) {
-      weights <- dcBinom(0:N, N, k, x)
-      if (any(weights < 0)) {
-        warning("Density function returned negative probabilities.")
-        weights <- weights + abs(min(weights))
-      }
-      if (sum(weights != 1)) {
-        warning("Sum of probabilities did not equal 1.")
-        weights <- weights/sum(weights)
-      }
-      sample(0:N, size = 1, prob = weights, replace = TRUE)
-    })
+    sample(0:N, size = 1, prob = weights / sum(weights), replace = TRUE)
+  }, integer(1))
+  if (negative) {
+    warning("Density function returned negative probabilities.")
   }
+  draws
 }
 
 #' Probability Mass function for Lord's Beta Compound Binomial Distribution.
@@ -1350,6 +1216,9 @@ rcBinom <- function(n, N, k, p) {
 #' @param u The upper-bound location parameter of the four-parameter Beta distribution.
 #' @param alpha The first shape-parameter of the four-parameter Beta distribution.
 #' @param beta The second shape-parameter of the four-parameter Beta distribution.
+#' @return The probability mass at \code{x}.
+#' @export
+#' @examples
 #' # Assume some variable follows a Beta compound Binomial distribution with 100
 #' # trials, Lord's k = 1, and probabilities of successful trials drawn from a
 #' # four-parameter Beta distribution with location-parameters l = .15 and u =
@@ -1357,11 +1226,9 @@ rcBinom <- function(n, N, k, p) {
 #' # probability density at a specific point of the distribution (e.g., 50):
 #' dBetacBinom(x = 50, N = 100, k = 1, l = .15, u = .85, alpha = 6, beta = 4)
 dBetacBinom <- function(x, N, k, l, u, alpha, beta) {
-  sapply(x, function(x) {
-    stats::integrate(function(y) {
-      dcBinom(x, N, k, y) * dBeta.4P(y, l, u, alpha, beta)
-    }, lower = 0, upper = 1)$value
-  })
+  vapply(x, function(xi) {
+    .integrate_support(function(p) dcBinom(xi, N, k, p) * dBeta.4P(p, l, u, alpha, beta), l, u, 0, 1)
+  }, numeric(1))
 }
 
 #' Random Number Generation under Lord's Beta Compound-Binomial Distribution.
@@ -1374,7 +1241,7 @@ dBetacBinom <- function(x, N, k, l, u, alpha, beta) {
 #' @param u The upper-bound location parameter of the four-parameter Beta distribution.
 #' @param alpha The first shape-parameter of the four-parameter Beta distribution.
 #' @param beta The second shape-parameter of the four-parameter Beta distribution.
-#' @note For larger values of \code{k}, the distribution can yield negative probabilities which returns an error.
+#' @note For larger values of \code{k}, the distribution can yield negative probabilities. As in \code{rcBinom()}, these are handled by shifting all probabilities up by the absolute value of the minimum and re-normalizing, with a warning.
 #' @export
 #' @examples
 #' # To draw a sample of 50 values from a Beta Compound-Binomial distribution
@@ -1384,14 +1251,5 @@ dBetacBinom <- function(x, N, k, l, u, alpha, beta) {
 #' # beta = 4:
 #' rBetacBinom(x = 50, N = 100, k = 1, l = .15, u = .85, alpha = 6, beta = 4)
 rBetacBinom <- function(x, N, k, l, u, alpha, beta) {
-  weights <- dBetacBinom(0:N, N, k, l, u, alpha, beta)
-  if (any(weights < 0)) {
-    warning("Density function returned negative probabilities.")
-    weights <- weights + abs(min(weights))
-  }
-  if (sum(weights != 1)) {
-    warning("Sum of probabilities did not equal 1.")
-    weights <- weights/sum(weights)
-  }
-  sample(0:N, size = x, prob = weights, replace = TRUE)
+  sample(0:N, size = x, prob = .fix_weights(dBetacBinom(0:N, N, k, l, u, alpha, beta)), replace = TRUE)
 }

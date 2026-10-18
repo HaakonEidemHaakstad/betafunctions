@@ -11,7 +11,7 @@ pGammaBinom(q, size, prob, lower.tail = TRUE)
 
 \item{size}{Number of "trials" (zero or more). Need not be integer.}
 
-\item{prob}{Probability of "success" on each "trial". Need not be integer.}
+\item{prob}{Probability of "success" on each "trial". Need not be integer. \code{q} and \code{prob} are recycled to a common length.}
 
 \item{lower.tail}{Logical. If TRUE (default), probabilities are P[X<x], otherwise, P[X >= x]. Note that this differs from base-R \code{binom()} functions.}
 }

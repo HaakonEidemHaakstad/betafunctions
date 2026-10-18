@@ -23,7 +23,7 @@ HB.CA(
 
 \item{reliability}{The observed-score squared correlation (i.e., proportion of shared variance) with the true-score.}
 
-\item{cut}{The cutoff value for classifying observations into above/below categories.}
+\item{cut}{The cutoff value for classifying observations into above/below categories. Observed sum scores at or above \code{cut} are classified as above the cut.}
 
 \item{testlength}{The total number of test items (or maximum possible score). Must be an integer.}
 

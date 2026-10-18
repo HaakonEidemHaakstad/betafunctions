@@ -17,6 +17,9 @@ pcBinom(q, N, k, p, lower.tail = TRUE)
 
 \item{lower.tail}{Logical. If TRUE (default), probabilities are P[X<x], otherwise, P[X >= x]. Note that this differs from base-R \code{binom()} functions.}
 }
+\value{
+A vector of cumulative probabilities.
+}
 \description{
 Function for calculating the proportion of observations up to a specifiable quantile under Lord's two-term approximation to the compound Binomial distribution.
 }

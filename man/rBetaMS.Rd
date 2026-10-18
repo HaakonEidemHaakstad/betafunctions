@@ -31,6 +31,7 @@ Draws random samples of observations from the Standard Beta probability density 
 rBetaMS(n = 100, mean = 0.6, variance = 0.04)
 
 # To draw a random sample of 100 values from a Four-Parameter Beta
+# distribution with a mean of 60 and variance = 400, and a lower-bound of
 # 0 and an upper-bound of 100:
 rBetaMS(n = 100, mean = 60, variance = 400, l = 0, u = 100)
 }

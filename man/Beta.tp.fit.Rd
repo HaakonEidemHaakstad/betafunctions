@@ -26,7 +26,7 @@ Beta.tp.fit(
 
 \item{etl}{The value of Livingston and Lewis' effective test length. See \code{?ETL()}. Not necessary to specify if reliability is supplied to the \code{reliability} argument.}
 
-\item{reliability}{Optional specification of the test-score reliability coefficient. If specified, overrides the input of the \code{etl} argument.}
+\item{reliability}{Optional specification of the test-score reliability coefficient. Used to compute the effective test length when \code{etl} is not supplied.}
 
 \item{true.model}{The type of Beta distribution which is to be fit to the moments of the true-score distribution. Options are \code{"4P"} and \code{"2P"}, where \code{"4P"} refers to the four-parameter (with the same mean, variance, skewness, and kurtosis), and \code{"2P"} the two-parameter solution where both location-parameters are specified (with the same mean and variance).}
 

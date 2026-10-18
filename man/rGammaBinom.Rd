@@ -13,7 +13,7 @@ rGammaBinom(n, size, prob, precision = 1e-04)
 
 \item{prob}{Probability of "success" on each "trial". Need not be integer.}
 
-\item{precision}{The precision with which the quantile is to be calculated. Default is 1e-4 (i.e., search terminates when there is no registered change in estimate at the fourth decimal). Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.}
+\item{precision}{The convergence tolerance used by \code{qGammaBinom()} when computing the quantile. Default is 1e-4. Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.}
 }
 \description{
 Random number generation under the Gamma-extended Binomial distribution.

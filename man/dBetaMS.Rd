@@ -20,7 +20,7 @@ dBetaMS(x, mean, variance = NULL, sd = NULL, l = 0, u = 1)
 \item{u}{The upper-bound location parameter. Default set to 1 (the standard Beta distribution).}
 }
 \value{
-A numeric value representing the required value for the beta Shape-parameter in order to produce a Standard Beta probability density distribution with the target mean and variance.
+The probability density at \code{x} under the Beta distribution with the specified mean, variance, and location parameters.
 }
 \description{
 Calculates the density under specific points of the Standard Beta probability density distribution with defined mean and variance or standard deviation.

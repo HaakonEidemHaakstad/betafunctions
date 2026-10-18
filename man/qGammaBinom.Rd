@@ -15,13 +15,13 @@ qGammaBinom(p, size, prob, lower.tail = TRUE, precision = 1e-07)
 
 \item{lower.tail}{Logical. If TRUE (default), probabilities are P[X < x], otherwise P[X > x].}
 
-\item{precision}{The precision with which the quantile is to be calculated. Default is 1e-7 (i.e., search terminates when there is no registered change in estimate at the seventh decimal). Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.}
+\item{precision}{The convergence tolerance of the root-finding algorithm (passed to \code{stats::uniroot()} as \code{tol}). Default is 1e-7. Tuning this value will impact the time it takes for the search algorithm to arrive at an estimate.}
 }
 \description{
 Quantile function for the Gamma-extended Binomial distribution.
 }
 \note{
-This function uses a bisection search-algorithm to find the number of successes corresponding to the specified quantile(s). This algorithm is inefficient with respect to the number of iterations required to converge on the solution. More efficient algorithms might be added in later versions.
+This function uses root-finding (\code{stats::uniroot()}) on the cumulative distribution function to find the number of successes corresponding to the specified quantile(s).
 }
 \examples{
 # For a Gamma-extended Binomial distribution with number of trials = 10 and

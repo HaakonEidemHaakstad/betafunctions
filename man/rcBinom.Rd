@@ -19,7 +19,7 @@ rcBinom(n, N, k, p)
 Random Number Generation under Lord's Two-Term Approximation to the Compound Binomial Distribution.
 }
 \note{
-For larger values of \code{k}, the distribution can yield negative probabilities. This function handles such occurrences by adding the absolute value of the minimum probability to all observations if there are any negative probabilities and then normalize the distribution so that the total density is equal to 1.
+For larger values of \code{k}, the distribution can yield negative probabilities. This function handles such occurrences by adding the absolute value of the minimum probability to all observations if there are any negative probabilities and then normalize the distribution so that the total density is equal to 1. If \code{p} is a vector it is recycled to length \code{n}, and one value is drawn per element.
 }
 \examples{
 # To draw a sample of 50 values from a Compound-Binomial distribution with

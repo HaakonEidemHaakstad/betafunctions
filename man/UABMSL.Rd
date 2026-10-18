@@ -22,7 +22,7 @@ UABMSL(
 
 \item{variance}{The variance (second central moment) of the target Standard Beta probability density distribution.}
 
-\item{l}{The lower-bound of the Beta distribution. Default is NULL (i.e., does not take a specified l-parameter into account).}
+\item{l}{The lower-bound of the Beta distribution. Default is NULL (i.e., does not take a specified l-parameter into account). If supplied, \code{u} is determined by \code{alpha}, \code{beta}, \code{mean}, and \code{l} alone, and \code{variance} is not used.}
 
 \item{sd}{Optional alternative to specifying \code{var}. The standard deviation of the target Standard Beta probability density distribution.}
 }
@@ -45,9 +45,9 @@ hist(testdata, xlim = c(0, 1), freq = FALSE)
 M <- mean(testdata)
 S2 <- var(testdata)
 
-# To find the l parameter necessary to produce a four-parameter Beta
-# distribution with the target mean, variance, and u, alpha, and beta
-# parameters using the LMSBAU() function:
+# To find the u parameter necessary to produce a four-parameter Beta
+# distribution with the target mean, variance, and l, alpha, and beta
+# parameters using the UABMSL() function:
 (u <- UABMSL(alpha = 5, beta = 3, mean = M, variance = S2, l = 0.25))
 curve(dBeta.4P(x, 0.25, u, 5, 3), add = TRUE, lwd = 2)
 }

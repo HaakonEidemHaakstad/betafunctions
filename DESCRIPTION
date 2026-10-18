@@ -1,7 +1,7 @@
 Package: betafunctions
 Type: Package
 Title: Functions for Working with Two- And Four-Parameter Beta Probability Distributions and Psychometric Analysis of Classifications
-Version: 1.9.0
+Version: 1.9.1
 Author: Haakon Eidem Haakstad
 Maintainer: Haakon Eidem Haakstad <h.e.haakstad@gmail.com>
 Description: Package providing a number of functions for working with Two- and 
@@ -26,6 +26,12 @@ Description: Package providing a number of functions for working with Two- and
     Lord (1965) <doi:10.1007/BF02289490>.
     Hanson (1991) <https://files.eric.ed.gov/fulltext/ED344945.pdf>.
 License: CC0
+Imports:
+    graphics,
+    stats
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
 Encoding: UTF-8
 LazyData: false
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1

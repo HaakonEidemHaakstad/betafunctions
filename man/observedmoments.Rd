@@ -18,7 +18,7 @@ observedmoments(
 
 \item{orders}{The number of moment-orders to be calculated for each of the moment-types.}
 
-\item{correct}{Logical. Whether to include bias correction in estimation of orders. Default is \code{TRUE}.}
+\item{correct}{Logical. Whether to include bias correction in estimation of orders. Default is \code{TRUE}. For central moments, \code{TRUE} divides the sums of deviations by \code{n - 1} rather than \code{n}. For standardized moments, \code{TRUE} scales deviations by the sample standard deviation (\code{sd()}, denominator \code{n - 1}) and \code{FALSE} by the population standard deviation (denominator \code{n}). (Prior to version 1.9.1, \code{correct} had no effect on the standardized moments.)}
 }
 \value{
 A list of moment types, each a list of moment orders.

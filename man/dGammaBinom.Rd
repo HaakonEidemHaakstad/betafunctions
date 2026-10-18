@@ -19,7 +19,7 @@ dGammaBinom(x, size, prob, nc = FALSE)
 Probability density function under the Gamma-extended Binomial distribution.
 }
 \examples{
-#' # Assume some variable follows a Gamma-Binomial distribution with
+# Assume some variable follows a Gamma-Binomial distribution with
 # "number of trials" = 10.5 and probability of "success" for each "trial"
 # = 0.75, to compute the probability density to attain a "number of success"
 # at a specific point (e.g., 7.5 "successes"):

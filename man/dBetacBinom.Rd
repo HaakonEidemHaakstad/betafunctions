@@ -19,14 +19,19 @@ dBetacBinom(x, N, k, l, u, alpha, beta)
 
 \item{alpha}{The first shape-parameter of the four-parameter Beta distribution.}
 
-\item{beta}{The second shape-parameter of the four-parameter Beta distribution.
+\item{beta}{The second shape-parameter of the four-parameter Beta distribution.}
+}
+\value{
+The probability mass at \code{x}.
+}
+\description{
+Gives the density at \code{x} under the Beta Compound-Binomial distribution, where the Compound-Binomial distribution is Lord's two-term approximation.
+}
+\examples{
 # Assume some variable follows a Beta compound Binomial distribution with 100
 # trials, Lord's k = 1, and probabilities of successful trials drawn from a
 # four-parameter Beta distribution with location-parameters l = .15 and u =
 # .85, and shape parameters alpha = 6 and beta = 4. To compute the
 # probability density at a specific point of the distribution (e.g., 50):
-dBetacBinom(x = 50, N = 100, k = 1, l = .15, u = .85, alpha = 6, beta = 4)}
-}
-\description{
-Gives the density at \code{x} under the Beta Compound-Binomial distribution, where the Compound-Binomial distribution is Lord's two-term approximation.
+dBetacBinom(x = 50, N = 100, k = 1, l = .15, u = .85, alpha = 6, beta = 4)
 }
