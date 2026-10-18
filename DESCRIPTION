@@ -18,13 +18,16 @@ Description: Package providing a number of functions for working with Two- and
     distributions, and observed value distributions.
     - Functions for estimating classification accuracy and consistency, 
     making use of the Classical Test-Theory based 'Livingston and Lewis' (L&L) 
-    and 'Hanson and Brennan' approaches.
+    and 'Hanson and Brennan' approaches, and the multinomial and compound
+    multinomial approach of Lee (2007) and Lee, Brennan, and Wan (2009).
       A shiny app is available, providing a GUI for the L&L approach when used 
     for binary classifications. For url to the app, see documentation for the 
     LL.CA() function.
     Livingston and Lewis (1995) <doi:10.1111/j.1745-3984.1995.tb00462.x>.
     Lord (1965) <doi:10.1007/BF02289490>.
     Hanson (1991) <https://files.eric.ed.gov/fulltext/ED344945.pdf>.
+    Lee (2007) <doi:10.1177/0146621606294206>.
+    Lee, Brennan, and Wan (2009) <doi:10.1177/0146621608321759>.
 License: CC0
 Imports:
     graphics,

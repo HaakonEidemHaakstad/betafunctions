@@ -2,6 +2,10 @@
 
 A full audit and refactor of every function. Arguments and output structures are unchanged; outputs differ only where the previous implementation was wrong or numerically inaccurate (listed below).
 
+## New functions
+
+- `MN.CA()`, `MN.CA.MC()`, and `MN.ROC()` implement the multinomial and compound multinomial approach to classification accuracy and consistency of Lee (2007) and Lee, Brennan, and Wan (2009), as in the MULT-CLASS program. They mirror the `LL.` and `HB.` functions' arguments and output, so `MC.out.tabular()` works on `MN.CA.MC()` output. Items can be grouped into fixed, weighted item sets with any score points. Brennan and Lee's (2006) bias correction is optional (on by default), and examinee-level results are available with `conditional = TRUE`. `MN.CA.MC()` also reports the ordered over- and underclassification rates. The implementation reproduces both example analyses distributed with MULT-CLASS v3.0 to the five printed decimals.
+
 ## Bug fixes (outputs change)
 
 - `qBeta.4P(lower.tail = FALSE)` (and therefore `qBetaMS(lower.tail = FALSE)`) returned `1 - qbeta(p, alpha, beta)`, which is the upper-tail quantile only when `alpha == beta`. It now returns `qbeta(p, alpha, beta, lower.tail = FALSE)`.
