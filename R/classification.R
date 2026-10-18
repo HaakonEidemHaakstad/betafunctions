@@ -68,7 +68,6 @@ R.ETL <- function(mean, variance, min = 0, max = 1, ETL) {
 #' @param conditional Logical. Whether to include classification accuracy and consistency conditional on each possible observed score. Default is \code{FALSE}. If \code{TRUE}, the output gains a data frame \code{conditional} with one row per possible observed score (on the effective-test-length scale, reported in the original score metric): the score, its expected proportion under the fitted model, its observed category, the probability that an examinee with that score is classified into their true category (\code{accuracy}), the probability that two independent administrations classify such an examinee into the same category (\code{consistency}), and the posterior probability of each true category. Averaging \code{accuracy} or \code{consistency} weighted by \code{proportion} gives the overall indices.
 #' @return A list containing the estimated parameters necessary for the approach (i.e., the effective test-length and the beta distribution parameters), a chi-square test of model-fit, the confusion matrix containing estimated proportions of true/false pass/fail categorizations for a test, diagnostic performance statistics, and / or a classification consistency matrix and indices. Accuracy output includes a confusion matrix and diagnostic performance indices, and consistency output includes a consistency matrix and consistency indices \code{p} (expected proportion of agreement between two independent test administrations), \code{p_c} (proportion of agreement on two independent administrations expected by chance alone), and \code{Kappa} (Cohen's Kappa).
 #' @note It should be noted that this implementation differs from the original articulation of Livingston and Lewis (1995) in some respects. First, the procedure includes a number of diagnostic performance (accuracy) indices which the original procedure enables but that were not included. Second, the way consistency is calculated differs substantially from the original articulation of the procedure, which made use of a split-half approach. Rather, this implementation uses the approach to estimating classification consistency outlined by Hanson (1991).
-#' @note A shiny application providing a GUI for this method is available at https://hthaa.shinyapps.io/shinybeta/ .
 #' @examples
 #' # Generate some fictional data. Say, 1000 individuals take a test with a
 #' # maximum score of 100 and a minimum score of 0.
@@ -512,7 +511,6 @@ LL.ROC <- function(x = NULL, reliability, min = 0, max = 1, truecut, true.model 
 #' @param FPR Vector of False-Positive Rates.
 #' @param TPR Vector of True-Positive Rates.
 #' @return A value representing the area under the ROC curve.
-#' @note Script originally retrieved and modified from https://blog.revolutionanalytics.com/2016/11/calculating-auc.html.
 #' @examples
 #' # Generate some fictional data. Say, 100 individuals take a test with a
 #' # maximum score of 100 and a minimum score of 0.
@@ -690,7 +688,7 @@ mdo <- function(x, fit = FALSE, method = c("ml", "triad")) {
 #' @return A list with the parameter values of a four-parameter Beta distribution. "l" is the lower location-parameter, "u" the upper location-parameter, "alpha" the first shape-parameter, "beta" the second shape-parameter, and "etl" the effective test length.
 #' @references Hanson, B. A. (1991). Method of Moments Estimates for the Four-Parameter Beta Compound Binomial Model and the Calculation of Classification Consistency Indexes. American College Testing Research Report Series. Retrieved from https://files.eric.ed.gov/fulltext/ED344945.pdf
 #' @references Lord, F. M. (1965). A strong true-score theory, with applications. Psychometrika. 30(3). pp. 239--270. doi: 10.1007/BF02289490
-#' @references Rogosa, D. &  Finkelman, M. (2004). How Accurate Are the STAR Scores for Individual Students? An Interpretive Guide. Retrieved from http://statweb.stanford.edu/~rag/accguide/guide04.pdf
+#' @references Rogosa, D. &  Finkelman, M. (2004). How Accurate Are the STAR Scores for Individual Students? An Interpretive Guide. Stanford University.
 #' @examples
 #' # Generate some fictional data. Say 1000 individuals take a 100-item test
 #' # where all items are equally difficult, and the true-score distribution

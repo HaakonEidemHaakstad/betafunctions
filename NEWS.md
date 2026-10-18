@@ -226,7 +226,7 @@ The following functions now issue a deprecation warning and will become defunct 
 
 - Changes to the `LL.ROC()` function. Now allows for specifying the lower- and upper-bound parameters of the true-score distribution should "2P" be specified.
 
-- A Shiny application providing a GUI for the Livingston and Lewis approach functionality of the package has been developed and can be found at https://hthaa.shinyapps.io/shinybeta/
+- A Shiny application providing a GUI for the Livingston and Lewis approach functionality of the package has been developed
 
 - The "3P" functionality of `Beta.tp.fit()`, `LL.CA()` and `LL.ROC` has been removed, as it did not perform satisfactorily. 
 

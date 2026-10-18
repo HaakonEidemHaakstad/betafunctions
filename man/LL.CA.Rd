@@ -55,8 +55,6 @@ An implementation of what has been come to be known as the "Livingston and Lewis
 }
 \note{
 It should be noted that this implementation differs from the original articulation of Livingston and Lewis (1995) in some respects. First, the procedure includes a number of diagnostic performance (accuracy) indices which the original procedure enables but that were not included. Second, the way consistency is calculated differs substantially from the original articulation of the procedure, which made use of a split-half approach. Rather, this implementation uses the approach to estimating classification consistency outlined by Hanson (1991).
-
-A shiny application providing a GUI for this method is available at https://hthaa.shinyapps.io/shinybeta/ .
 }
 \examples{
 # Generate some fictional data. Say, 1000 individuals take a test with a
