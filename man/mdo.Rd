@@ -4,20 +4,20 @@
 \alias{mdo}
 \title{Calculate McDonald's Omega reliability-coefficient from supplied variables.}
 \usage{
-mdo(x, fit = FALSE, method = c("triad", "ml"))
+mdo(x, fit = FALSE, method = c("ml", "triad"))
 }
 \arguments{
 \item{x}{A data-frame or matrix of numerical values where rows represent respondents, and columns represent items.}
 
 \item{fit}{Logical. Default is \code{FALSE}. If \code{TRUE}, the output changes from a vector containing the Omega reliability-estimate to a list containing additional detailed information concerning the fitted factor model.}
 
-\item{method}{The estimator of the one-factor model. \code{"triad"} (default) estimates each item's loading as the mean over all pairs of other items of \eqn{\sqrt{\sigma_{ia}\sigma_{ib}/\sigma_{ab}}}, and its error variance as the item variance minus the squared loading. \code{"ml"} fits the one-factor model by maximum likelihood with \code{stats::factanal()} and rescales the standardized solution to the covariance metric. Maximum likelihood is the standard estimator, uses all covariances simultaneously, and provides a likelihood-ratio test of the one-factor model; it assumes multivariate normality for the test, though the point estimates remain reasonable under moderate departures.}
+\item{method}{The estimator of the one-factor model. \code{"ml"} (default) fits the model by maximum likelihood; \code{"triad"} estimates each item's loading as the mean over all pairs of other items of \eqn{\sqrt{\sigma_{ia}\sigma_{ib}/\sigma_{ab}}}, and its error variance as the item variance minus the squared loading. With \code{"ml"}, the model is fitted with \code{stats::factanal()} and rescales the standardized solution to the covariance metric. Maximum likelihood is the standard estimator, uses all covariances simultaneously, and provides a likelihood-ratio test of the one-factor model; it assumes multivariate normality for the test, though the point estimates remain reasonable under moderate departures.}
 }
 \value{
 If \code{fit = FALSE}, A vector of length 1 containing the estimated McDonalds's Omega reliability-coefficient for the sum-score of the supplied variables. If \code{fit = TRUE}, a list containing the Omega-coefficient reliability-estimate as the first entry, followed by the goodness-of-fit index (GFI, unweighted least squares form), a two-row matrix containing the estimated factor-loadings and error-variances, and the observed and fitted covariance-matrices and the discrepancy matrix. With \code{method = "ml"}, the list also contains \code{Test}: the likelihood-ratio chi-square test of the one-factor model (\code{statistic}, \code{df}, \code{p.value}), which is \code{NA} when the model has zero degrees of freedom (three items).
 }
 \description{
-Calculates McDonalds's Omega reliability-coefficient of the sum-score from the Spearman one-factor model (McDonald, 1999). The factor loadings and error variances can be estimated by maximum likelihood (\code{method = "ml"}) or by averaging Spearman's triad estimates (\code{method = "triad"}, the default and the only method in versions prior to 1.9.1).
+Calculates McDonalds's Omega reliability-coefficient of the sum-score from the Spearman one-factor model (McDonald, 1999). The factor loadings and error variances are estimated by maximum likelihood (\code{method = "ml"}, the default) or by averaging Spearman's triad estimates (\code{method = "triad"}, the only method in versions prior to 1.9.1).
 }
 \details{
 Omega is \eqn{(\sum_i \lambda_i)^2 / ((\sum_i \lambda_i)^2 + \sum_i \psi_i)}, where \eqn{\lambda_i} are the factor loadings and \eqn{\psi_i} the error variances on the covariance metric.
@@ -36,16 +36,16 @@ rawdata <- matrix(rnorm(500), ncol = 5)
 common <- rnorm(100)
 rawdata <- apply(rawdata, 2, function(x) {x + common})
 
-# To estimate McDonald's Omega from this data:
+# To estimate McDonald's Omega from this data (maximum likelihood):
 mdo(rawdata)
 
-# Using maximum-likelihood estimation of the one-factor model:
-mdo(rawdata, method = "ml")
+# Using the triad estimator of versions prior to 1.9.1:
+mdo(rawdata, method = "triad")
 
 # To retrieve additional information such as the GFI fit-index, the
 # likelihood-ratio test of the one-factor model, and model-parameter
 # estimates:
-mdo(rawdata, fit = TRUE, method = "ml")
+mdo(rawdata, fit = TRUE)
 }
 \references{
 McDonald, R. P. (1999). Test Theory: A Unified Treatment. Routledge.

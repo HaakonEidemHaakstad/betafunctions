@@ -125,13 +125,16 @@ test_that("reliability coefficients", {
   set.seed(1234)
   x <- matrix(rnorm(500), ncol = 5) + rnorm(100)
   colnames(x) <- letters[1:5]
-  w <- mdo(x)
+  w <- mdo(x, method = "triad")
   expect_true(w > 0 && w < 1)
-  f <- mdo(x, fit = TRUE)
+  f <- mdo(x, fit = TRUE, method = "triad")
   expect_equal(f$Omega, w)
   expect_equal(colnames(f$Parameters), letters[1:5])
   # The GFI does not depend on the scale of the data.
-  expect_equal(mdo(x * 10, fit = TRUE)$GFI, f$GFI)
+  expect_equal(mdo(x * 10, fit = TRUE, method = "triad")$GFI, f$GFI)
+  expect_equal(mdo(x * 10, fit = TRUE)$GFI, mdo(x, fit = TRUE)$GFI, tolerance = 1e-6)
+  # Maximum likelihood is the default.
+  expect_equal(mdo(x), mdo(x, method = "ml"))
   expect_error(mdo(x[, 1:2]), "three")
   expect_true(cba(x) > 0)
 })
@@ -216,6 +219,6 @@ test_that("maximum-likelihood Omega", {
   # Negative covariances are allowed with ML, with a warning about keying.
   y <- x
   y[, 2] <- -y[, 2]
-  expect_error(mdo(y), "less than or equal to 0")
-  expect_warning(mdo(y, method = "ml"), "opposite sign")
+  expect_error(mdo(y, method = "triad"), "less than or equal to 0")
+  expect_warning(mdo(y), "opposite sign")
 })
